@@ -12,36 +12,24 @@
 <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 
 <style>
-/* Chess.com style board colors */
-.white-1e1d7 {
-    background-color: #EEEED2 !important;
+/* Override chessboard.js default colors with custom theme */
+.board-b72b1 {
+    background-color: #2C3E50 !important; /* Dark squares */
 }
 
-.black-3c85d {
-    background-color: #769656 !important;
+.board-w72b1 {
+    background-color: #95a5a6 !important; /* Light squares */
 }
 
-/* Orange highlights */
-.highlight-white {
-    background-color: rgba(230, 126, 34, 0.5) !important;
+/* Orange highlights for selected squares */
+.highlight-white,
+.highlight-b72b1 {
+    box-shadow: inset 0 0 3px 3px rgba(230, 126, 34, 0.5) !important;
 }
 
-.highlight-black {
-    background-color: rgba(230, 126, 34, 0.6) !important;
-}
-
-/* Board coordinates */
-.notation-322f9 {
-    font-weight: bold !important;
-    font-size: 11px !important;
-}
-
-.white-1e1d7 .notation-322f9 {
-    color: #769656 !important;
-}
-
-.black-3c85d .notation-322f9 {
-    color: #EEEED2 !important;
+.highlight-black,
+.highlight-w72b1 {
+    box-shadow: inset 0 0 3px 3px rgba(230, 126, 34, 0.5) !important;
 }
 
 /* Main layout */
@@ -53,7 +41,7 @@
 
 .board-section {
     flex: 0 0 auto;
-    max-width: 600px;
+    width: 600px;
 }
 
 .sidebar-section {
@@ -287,7 +275,7 @@
     <!-- Left: Chess Board -->
     <div class="board-section">
         <div id="board-wrapper" style="position: relative;">
-            <div id="board" style="width: 100%;"></div>
+            <div id="board" style="width: 600px;"></div>
         </div>
 
         <!-- Navigation Controls -->
