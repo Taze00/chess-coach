@@ -1,19 +1,19 @@
-"""
-Chess Coach - Main Flask Application
-A personalized chess trainer that analyzes your games and trains your weaknesses.
-"""
-from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort, session
 from flask_login import LoginManager, login_required, current_user
 from dotenv import load_dotenv
 import os
+import time
 
 from models import db, User, Game
 from auth import auth, bcrypt
 from chess_api import ChessComAPI
 from stockfish_analyzer import StockfishAnalyzer
 
+# Global progress tracker
+analysis_progress = {}
+
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -205,6 +205,22 @@ def import_games():
         }), 500
 
 
+@app.route('/api/analysis-progress', methods=['GET'])
+@login_required
+def analysis_progress_endpoint():
+    """Get current analysis progress for the user"""
+    progress_key = f"analysis_{current_user.id}"
+    progress = analysis_progress.get(progress_key, {
+        'current': 0,
+        'total': 0,
+        'percent': 0,
+        'estimated_seconds': 0,
+        'current_action': 'Warte...',
+        'errors_found': 0
+    })
+    return jsonify(progress)
+
+
 @app.route('/api/analyze-games', methods=['POST'])
 @login_required
 def analyze_games():
@@ -233,8 +249,27 @@ def analyze_games():
 
         analyzed_count = 0
         total_errors = 0
+        total_games = len(unanalyzed_games)
 
-        for game in unanalyzed_games:
+        start_time = time.time()
+        progress_key = f"analysis_{current_user.id}"
+
+        for idx, game in enumerate(unanalyzed_games, 1):
+            # Update progress
+            elapsed = time.time() - start_time
+            avg_time_per_game = elapsed / idx if idx > 0 else 0
+            remaining_games = total_games - idx
+            estimated_time_left = avg_time_per_game * remaining_games
+
+            analysis_progress[progress_key] = {
+                'current': idx,
+                'total': total_games,
+                'percent': int((idx / total_games) * 100),
+                'estimated_seconds': int(estimated_time_left),
+                'current_action': f'Analysiere Spiel {idx}/{total_games}...',
+                'errors_found': total_errors
+            }
+
             # Determine player color from PGN
             import chess.pgn
             from io import StringIO
@@ -256,8 +291,14 @@ def analyze_games():
                 # Skip if we can't determine color
                 continue
 
+            # Update: Analyzing with Stockfish
+            analysis_progress[progress_key]['current_action'] = f'Stockfish analysiert Spiel {idx}/{total_games}...'
+
             # Analyze the game
             errors = analyzer.analyze_game(game.pgn, player_color)
+
+            # Update: Saving errors
+            analysis_progress[progress_key]['current_action'] = f'Speichere {len(errors)} Fehler...'
 
             # Save errors to database
             from models import Error
@@ -282,9 +323,14 @@ def analyze_games():
             # Mark game as analyzed
             game.analyzed = True
             analyzed_count += 1
+            analysis_progress[progress_key]['errors_found'] = total_errors
 
         # Commit all changes
         db.session.commit()
+
+        # Clear progress
+        if progress_key in analysis_progress:
+            del analysis_progress[progress_key]
 
         return jsonify({
             'success': True,

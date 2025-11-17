@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Chess Coach{% endblock %}
+{% block title %}Dashboard - Stockmeister{% endblock %}
 
 {% block content %}
 <!-- Main Dashboard Container -->
@@ -19,9 +19,9 @@
             <div class="coach-card">
                 <!-- Coach Header with Avatar -->
                 <div class="coach-header">
-                    <img src="{{ url_for('static', filename='images/coach.jpg') }}" alt="Chess Coach" class="coach-img">
+                    <img src="{{ url_for('static', filename='images/coach.jpg') }}" alt="Stockmeister" class="coach-img">
                     <div class="coach-info">
-                        <h5 class="mb-1">Dein Coach</h5>
+                        <h5 class="mb-1">Stockmeister</h5>
                         <p class="mb-0 text-white-50">Hier um dir zu helfen</p>
                     </div>
                 </div>
@@ -139,17 +139,32 @@ document.getElementById('importAnalyzeBtn').addEventListener('click', function()
             <p class="mb-0">Starte jetzt die Stockfish-Analyse...</p>
         `;
 
-        // Simulate progress during analysis
-        let currentProgress = 30;
+        // Poll for real progress during analysis
+        let analysisStarted = false;
         const progressInterval = setInterval(() => {
-            if (currentProgress < 90) {
-                currentProgress += Math.random() * 8;
-                if (currentProgress > 90) currentProgress = 90;
-                progressBar.style.width = currentProgress + '%';
-                progressText.textContent = Math.round(currentProgress) + '%';
-                progressDetails.textContent = `Analysiere Spiele mit Stockfish... ${Math.round(currentProgress)}%`;
-            }
-        }, 800);
+            fetch('/api/analysis-progress')
+                .then(r => r.json())
+                .then(progress => {
+                    if (progress.total > 0) {
+                        analysisStarted = true;
+                        progressBar.style.width = progress.percent + '%';
+                        progressText.textContent = progress.percent + '%';
+
+                        // Format time estimate
+                        const mins = Math.floor(progress.estimated_seconds / 60);
+                        const secs = progress.estimated_seconds % 60;
+                        const timeStr = mins > 0
+                            ? `~${mins}min ${secs}s übrig`
+                            : `~${secs}s übrig`;
+
+                        progressDetails.textContent = `${progress.current_action} | ${timeStr} | ${progress.errors_found} Fehler gefunden`;
+                    } else if (analysisStarted) {
+                        // Analysis finished
+                        clearInterval(progressInterval);
+                    }
+                })
+                .catch(e => console.error('Progress fetch error:', e));
+        }, 1000);
 
         // Step 2: Analyze games
         return fetch('/api/analyze-games', {

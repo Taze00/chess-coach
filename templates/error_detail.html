@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Fehler-Detail - Chess Coach{% endblock %}
+{% block title %}Fehler-Detail - Stockmeister{% endblock %}
 
 {% block extra_head %}
 <!-- jQuery (must load before chessboard.js) -->
@@ -10,6 +10,68 @@
 <!-- Chessboard.js for board display -->
 <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+
+<style>
+/* Override chessboard.js default colors with custom theme */
+.white-1e1d7 {
+    background-color: #95a5a6 !important; /* Light squares */
+}
+
+.black-3c85d {
+    background-color: #2c3e50 !important; /* Dark squares - matches primary color */
+}
+
+/* Highlighted squares */
+.highlight-white {
+    background-color: rgba(230, 126, 34, 0.3) !important;
+    box-shadow: inset 0 0 3px 3px rgba(230, 126, 34, 0.5) !important;
+}
+
+.highlight-black {
+    background-color: rgba(230, 126, 34, 0.4) !important;
+    box-shadow: inset 0 0 3px 3px rgba(230, 126, 34, 0.5) !important;
+}
+
+/* Board container */
+#board {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Move arrows */
+.move-arrow {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.arrow-your-move {
+    stroke: #e74c3c;
+    stroke-width: 15;
+    fill: #e74c3c;
+    opacity: 0.9;
+    filter: drop-shadow(0 0 3px rgba(231, 76, 60, 0.8));
+}
+
+.arrow-best-move {
+    stroke: #27ae60;
+    stroke-width: 15;
+    fill: #27ae60;
+    opacity: 0.9;
+    filter: drop-shadow(0 0 3px rgba(39, 174, 96, 0.8));
+}
+
+/* Arrow markers */
+.arrow-head-red {
+    fill: #e74c3c;
+}
+
+.arrow-head-green {
+    fill: #27ae60;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -33,125 +95,245 @@
     </div>
 
     <div class="col-lg-5">
-        <!-- Error Info -->
+
+        <!-- Coach Explanation -->
+        <div class="card mb-3" style="background: linear-gradient(135deg, var(--primary) 0%, #34495e 100%);">
+            <div class="card-body">
+                <div class="d-flex align-items-start gap-3">
+                    <div style="flex-shrink: 0;">
+                        <img src="{{ url_for('static', filename='images/coach.jpg') }}"
+                             alt="Stockmeister"
+                             style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.3); object-fit: cover; object-position: center 30%;">
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="background: rgba(255,255,255,0.15); padding: 1.25rem; border-radius: 1rem; position: relative;">
+                            <!-- Speech bubble arrow -->
+                            <div style="position: absolute; left: -10px; top: 20px; width: 0; height: 0;
+                                        border-top: 10px solid transparent;
+                                        border-bottom: 10px solid transparent;
+                                        border-right: 10px solid rgba(255,255,255,0.15);"></div>
+
+                            <h5 class="mb-3" style="color: var(--accent);">
+                                {% if error.error_type == 'blunder' %}
+                                    💥 Grober Fehler in Zug {{ error.move_number }}
+                                {% elif error.error_type == 'mistake' %}
+                                    ⚠️ Fehler in Zug {{ error.move_number }}
+                                {% else %}
+                                    📊 Ungenauigkeit in Zug {{ error.move_number }}
+                                {% endif %}
+                            </h5>
+
+                            <p class="mb-3" style="line-height: 1.6;">{{ error.explanation }}</p>
+
+                            <div class="mb-3">
+                                <strong style="color: var(--accent);">Was du gespielt hast:</strong>
+                                <div class="mt-2 p-2" style="background: rgba(231, 76, 60, 0.2); border-left: 3px solid #e74c3c; border-radius: 0.5rem;">
+                                    <span style="font-family: monospace; font-size: 1.1rem; color: #e74c3c;">{{ error.move_played }}</span>
+                                    <span class="ms-2 text-muted">→ Bewertung: {{ error.evaluation_after }}</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <strong style="color: var(--accent);">Besserer Zug:</strong>
+                                <div class="mt-2 p-2" style="background: rgba(39, 174, 96, 0.2); border-left: 3px solid #27ae60; border-radius: 0.5rem;">
+                                    <span style="font-family: monospace; font-size: 1.1rem; color: #27ae60;">{{ error.best_move }}</span>
+                                    <span class="ms-2 text-muted">→ Bewertung: {{ error.evaluation_before }}</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 text-center">
+                                <small class="text-muted">Verlust: <strong style="color: #e74c3c;">{{ (error.centipawn_loss / 100)|round(1) }}</strong> Bauern</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Board Controls -->
         <div class="card mb-3">
             <div class="card-body">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="error-icon me-3" style="font-size: 3rem;">
-                        {% if error.error_type == 'blunder' %}
-                            💥
-                        {% elif error.error_type == 'mistake' %}
-                            ⚠️
-                        {% else %}
-                            📊
-                        {% endif %}
-                    </div>
-                    <div>
-                        <h3 class="mb-1">Zug {{ error.move_number }}</h3>
-                        <span class="error-badge error-badge-{{ error.error_type }}">
-                            {% if error.error_type == 'blunder' %}
-                                Grober Fehler
-                            {% elif error.error_type == 'mistake' %}
-                                Fehler
-                            {% else %}
-                                Ungenauigkeit
-                            {% endif %}
-                            (-{{ (error.centipawn_loss / 100)|round(1) }})
-                        </span>
-                    </div>
+                <div class="d-grid gap-2">
+                    <button id="flipBoard" class="btn btn-outline-light">
+                        🔃 Brett drehen
+                    </button>
                 </div>
-
-                <div class="position-info">
-                    <h6 class="mb-3">Bewertung</h6>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Vor dem Zug:</span>
-                        <strong>{{ error.evaluation_before }}</strong>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted">Nach dem Zug:</span>
-                        <strong style="color: #e74c3c;">{{ error.evaluation_after }}</strong>
-                    </div>
+                <div class="mt-3 text-center">
+                    <small class="text-muted">
+                        <span style="color: #e74c3c;">🔴 Roter Pfeil</span> = Dein Zug<br>
+                        <span style="color: #27ae60;">🟢 Grüner Pfeil</span> = Besserer Zug
+                    </small>
                 </div>
             </div>
         </div>
 
-        <!-- Move Comparison -->
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="mb-3">Züge</h5>
-                <div class="move-comparison">
-                    <div class="move-box played">
-                        <div class="move-label">Du spieltest</div>
-                        <div class="move-notation" style="color: #e74c3c;">{{ error.move_played }}</div>
-                    </div>
-                    <div class="move-box better">
-                        <div class="move-label">Besser wäre</div>
-                        <div class="move-notation" style="color: #27ae60;">{{ error.best_move }}</div>
-                    </div>
-                </div>
-                <button id="showBestMove" class="btn btn-success w-100 mt-3">
-                    Besten Zug anzeigen
-                </button>
-                <button id="resetBoard" class="btn btn-secondary w-100 mt-2" style="display: none;">
-                    Zurücksetzen
-                </button>
-            </div>
-        </div>
-
-        <!-- Explanation -->
-        <div class="card">
-            <div class="card-body">
-                <h5 class="mb-3">Erklärung</h5>
-                <p class="mb-0">{{ error.explanation }}</p>
-            </div>
-        </div>
     </div>
 </div>
 
 <script>
 $(document).ready(function() {
-    // Initialize chess game
-    const game = new Chess('{{ error.position }}');
+    // Game state
+    const initialPosition = '{{ error.position }}';
+    const bestMove = '{{ error.best_move }}';
+    const yourMove = '{{ error.move_played }}';
+
+    const game = new Chess(initialPosition);
     let board = null;
+    let currentArrows = [];
+
+    // Helper: Draw simple arrow like chess.com
+    function drawArrow(from, to, color) {
+        const boardEl = $('#board');
+        const squares = boardEl.find('.square-55d63');
+        if (squares.length === 0) return;
+
+        const squareSize = $(squares[0]).width();
+
+        // Get square positions (center of squares)
+        function getSquareCenter(square) {
+            const file = square.charCodeAt(0) - 'a'.charCodeAt(0);
+            const rank = 8 - parseInt(square[1]);
+            return {
+                x: (file + 0.5) * squareSize,
+                y: (rank + 0.5) * squareSize
+            };
+        }
+
+        const fromPos = getSquareCenter(from);
+        const toPos = getSquareCenter(to);
+
+        // Simple colors - red and green
+        const arrowColor = color === 'red' ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)';
+
+        // Create simple SVG arrow
+        const svg = $(`
+            <svg class="move-arrow" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100;">
+                <defs>
+                    <marker id="arrowhead-${color}" markerWidth="4" markerHeight="8" refX="2.6" refY="2.5" orient="auto">
+                        <path d="M0,0 L0,5 L3,2.5 z" fill="${arrowColor}" />
+                    </marker>
+                </defs>
+                <line x1="${fromPos.x}"
+                      y1="${fromPos.y}"
+                      x2="${toPos.x}"
+                      y2="${toPos.y}"
+                      stroke="${arrowColor}"
+                      stroke-width="${squareSize * 0.16}"
+                      stroke-linecap="round"
+                      marker-end="url(#arrowhead-${color})" />
+            </svg>
+        `);
+
+        boardEl.append(svg);
+        currentArrows.push(svg);
+    }
+
+    // Helper: Remove arrows
+    function removeArrows() {
+        $('.move-arrow').remove();
+        currentArrows = [];
+    }
+
+    // Helper: Highlight squares
+    function removeHighlights() {
+        $('#board .square-55d63').removeClass('highlight-white highlight-black');
+    }
+
+    function highlightSquares(from, to, color) {
+        removeHighlights();
+        const highlightClass = color === 'red' ? 'highlight-white' : 'highlight-black';
+        $('#board .square-' + from).addClass(highlightClass);
+        $('#board .square-' + to).addClass(highlightClass);
+    }
+
+    // Helper for validating and making moves
+    function onDrop(source, target) {
+        // Try to make the move
+        const move = game.move({
+            from: source,
+            to: target,
+            promotion: 'q'
+        });
+
+        // Illegal move
+        if (move === null) return 'snapback';
+
+        // Legal move - update board
+        removeArrows();
+    }
 
     // Board configuration
     const config = {
-        draggable: false,
-        position: '{{ error.position }}',
-        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+        draggable: true,
+        position: initialPosition,
+        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+        onDrop: onDrop,
+        onSnapEnd: function() {
+            board.position(game.fen());
+        }
     };
 
     // Initialize board
     board = Chessboard('board', config);
 
-    // Show best move
-    $('#showBestMove').on('click', function() {
-        const bestMove = '{{ error.best_move }}';
+    // Function to show both moves
+    function showBothMoves() {
+        removeArrows();
 
-        // Make the best move
-        try {
-            game.move({from: bestMove.slice(0, 2), to: bestMove.slice(2, 4)});
-            board.position(game.fen());
-        } catch (e) {
-            console.error('Error making move:', e);
-        }
+        // Draw orange arrow for your move
+        drawArrow(yourMove.slice(0, 2), yourMove.slice(2, 4), 'red');
 
-        $(this).hide();
-        $('#resetBoard').show();
-    });
+        // Draw green arrow for best move
+        setTimeout(function() {
+            drawArrow(bestMove.slice(0, 2), bestMove.slice(2, 4), 'green');
+        }, 100);
+    }
 
-    // Reset board
-    $('#resetBoard').on('click', function() {
-        game.load('{{ error.position }}');
-        board.position('{{ error.position }}');
+    // Show both moves automatically on load
+    setTimeout(function() {
+        showBothMoves();
+    }, 500);
 
-        $(this).hide();
-        $('#showBestMove').show();
+    // Reset to initial position
+    function resetPosition() {
+        game.load(initialPosition);
+        board.position(initialPosition);
+        setTimeout(function() {
+            showBothMoves();
+        }, 100);
+    }
+
+    // Flip board
+    $('#flipBoard').on('click', function() {
+        board.flip();
+        setTimeout(function() {
+            showBothMoves();
+        }, 200);
     });
 
     // Responsive board
     $(window).resize(function() {
         board.resize();
+        removeArrows();
+        setTimeout(function() {
+            showBothMoves();
+        }, 100);
+    });
+
+    // Keyboard shortcuts
+    $(document).on('keydown', function(e) {
+        switch(e.key) {
+            case 'r':
+            case 'R':
+                e.preventDefault();
+                resetPosition();
+                break;
+            case 'f':
+            case 'F':
+                e.preventDefault();
+                $('#flipBoard').click();
+                break;
+        }
     });
 });
 </script>
