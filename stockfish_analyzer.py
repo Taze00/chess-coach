@@ -846,7 +846,7 @@ class StockfishAnalyzer:
         return names.get(piece.piece_type, "Figur")
 
     def _uci_to_readable(self, board: chess.Board, uci_move: str) -> str:
-        """Convert UCI move to readable chess notation (e.g., e4, Sf3, O-O)"""
+        """Convert UCI move to just piece name in German (e.g., Dame, Springer, Turm)"""
         if not uci_move or len(uci_move) < 4:
             return uci_move
 
@@ -855,46 +855,14 @@ class StockfishAnalyzer:
 
             # Check for castling
             if board.is_castling(move):
-                # Kingside (short) castling
-                if move.to_square > move.from_square:
-                    return "O-O"
-                # Queenside (long) castling
-                else:
-                    return "O-O-O"
+                return "Rochade"
 
             piece = board.piece_at(move.from_square)
             if not piece:
                 return uci_move
 
-            # Get piece symbol (empty for pawns)
-            piece_symbols = {
-                chess.KNIGHT: 'S',  # Springer
-                chess.BISHOP: 'L',  # Läufer
-                chess.ROOK: 'T',    # Turm
-                chess.QUEEN: 'D',   # Dame
-                chess.KING: 'K'     # König
-            }
-
-            piece_symbol = piece_symbols.get(piece.piece_type, '')
-
-            # Get target square
-            to_square = chess.square_name(move.to_square)
-
-            # Check if it's a capture
-            is_capture = board.is_capture(move)
-            capture_symbol = 'x' if is_capture else ''
-
-            # For pawn moves, include file if it's a capture
-            if piece.piece_type == chess.PAWN:
-                if is_capture:
-                    from_file = chess.square_name(move.from_square)[0]
-                    return f"{from_file}{capture_symbol}{to_square}"
-                else:
-                    return to_square
-
-            # For other pieces: Just piece symbol + capture + square (no piece name)
-            result = f"{piece_symbol}{capture_symbol}{to_square}"
-            return result
+            # Return just the piece name in German
+            return self._get_piece_name(piece)
 
         except Exception as e:
             print(f"Error converting UCI to readable: {e}")
