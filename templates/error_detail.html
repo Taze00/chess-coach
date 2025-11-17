@@ -30,92 +30,200 @@
     background-color: rgba(230, 126, 34, 0.6) !important;
 }
 
-/* Board coordinates - better visibility */
+/* Board coordinates */
 .notation-322f9 {
     font-weight: bold !important;
     font-size: 11px !important;
 }
 
-/* White square coords - dark text */
 .white-1e1d7 .notation-322f9 {
     color: #769656 !important;
 }
 
-/* Dark square coords - light text */
 .black-3c85d .notation-322f9 {
     color: #EEEED2 !important;
 }
 
-/* Analysis container with eval bar */
-.analysis-container {
+/* Main layout */
+.chess-layout {
     display: flex;
-    gap: 0;
-    align-items: stretch;
-    position: relative;
+    gap: 1.5rem;
+    align-items: flex-start;
 }
 
-.eval-bar-container {
-    width: 30px;
-    background: linear-gradient(to bottom, white 50%, #2c3e50 50%);
-    position: relative;
-    border-radius: 0.5rem 0 0 0.5rem;
-    overflow: hidden;
-    flex-shrink: 0;
+.board-section {
+    flex: 0 0 auto;
+    max-width: 600px;
 }
 
-.eval-bar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: white;
-    transition: height 0.3s ease;
-}
-
-.eval-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 11px;
-    font-weight: bold;
-    z-index: 10;
-    color: #2c3e50;
-    text-shadow: 0 0 3px white;
-}
-
-#board-wrapper {
+.sidebar-section {
     flex: 1;
+    min-width: 350px;
+}
+
+/* Board wrapper */
+#board {
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Coach card */
+.coach-card {
+    background: linear-gradient(135deg, var(--primary) 0%, #34495e 100%);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.coach-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.coach-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    object-fit: cover;
+    object-position: center 30%;
+}
+
+.coach-bubble {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 1rem;
+    border-radius: 0.75rem;
     position: relative;
 }
 
-#board {
-    border-radius: 0 0.5rem 0.5rem 0;
-    overflow: hidden;
+.coach-bubble::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 15px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid rgba(255, 255, 255, 0.15);
 }
 
-/* Turn indicator */
-.turn-indicator {
-    display: inline-flex;
+/* Move list */
+.move-list-card {
+    background: rgba(44, 62, 80, 0.9);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.move-list-header {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.move-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.move-pair {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem;
     border-radius: 0.5rem;
+    transition: background 0.2s;
 }
 
-.turn-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+.move-pair:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.move-number {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+    text-align: right;
+    padding-right: 0.5rem;
+}
+
+.move-item {
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.4rem;
+    cursor: pointer;
     transition: all 0.2s;
+    font-family: monospace;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.9);
 }
 
-.turn-dot.active {
+.move-item:hover {
+    background: rgba(230, 126, 34, 0.2);
+}
+
+.move-item.active {
     background: var(--accent);
+    color: white;
+    font-weight: bold;
+}
+
+.move-item.error-move {
+    background: rgba(231, 76, 60, 0.3);
+    border: 2px solid #e74c3c;
+    position: relative;
+}
+
+.move-item.error-move::after {
+    content: '❌';
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+}
+
+/* Navigation controls */
+.nav-controls {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.nav-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.1rem;
+}
+
+.nav-btn:hover:not(:disabled) {
+    background: rgba(230, 126, 34, 0.3);
     border-color: var(--accent);
-    box-shadow: 0 0 10px rgba(230, 126, 34, 0.6);
+}
+
+.nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Arrows */
+.arrow {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
 }
 
 /* Move hints */
@@ -130,52 +238,40 @@
 .move-hint.capture {
     border: 4px solid rgba(0, 0, 0, 0.15);
     background: transparent;
-    border-radius: 50%;
 }
 
-/* Arrows - cleaner Chess.com style */
-.arrow {
-    position: absolute;
-    pointer-events: none;
-    z-index: 10;
+/* Scrollbar styling */
+.move-list-card::-webkit-scrollbar {
+    width: 8px;
 }
 
-/* Navigation controls */
-.nav-controls {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: center;
-    margin-top: 1rem;
-    flex-wrap: wrap;
+.move-list-card::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
 }
 
-.nav-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 0.9rem;
+.move-list-card::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
 }
 
-.nav-btn:hover:not(:disabled) {
-    background: rgba(230, 126, 34, 0.3);
-    border-color: var(--accent);
+.move-list-card::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
 }
 
-.nav-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
+/* Responsive */
+@media (max-width: 1200px) {
+    .chess-layout {
+        flex-direction: column;
+    }
 
-.move-number {
-    font-family: monospace;
-    font-weight: bold;
-    color: rgba(255, 255, 255, 0.9);
-    padding: 0.5rem 1rem;
+    .board-section {
+        max-width: 100%;
+    }
+
+    .sidebar-section {
+        width: 100%;
+    }
 }
 </style>
 {% endblock %}
@@ -187,13 +283,39 @@
     </div>
 </div>
 
-<div class="row">
-    <!-- Left: Analysis Board -->
-    <div class="col-lg-7 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">
+<div class="chess-layout">
+    <!-- Left: Chess Board -->
+    <div class="board-section">
+        <div id="board-wrapper" style="position: relative;">
+            <div id="board" style="width: 100%;"></div>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div class="nav-controls">
+            <button class="nav-btn" id="btnStart" title="Zum Anfang">⏮</button>
+            <button class="nav-btn" id="btnPrev" title="Zurück">◀</button>
+            <button class="nav-btn" id="btnNext" title="Vor">▶</button>
+            <button class="nav-btn" id="btnEnd" title="Zum Ende">⏭</button>
+        </div>
+
+        <div class="text-center mt-2">
+            <small class="text-muted">
+                ← → Pfeiltasten | Rechtsklick = Pfeile zeichnen
+            </small>
+        </div>
+    </div>
+
+    <!-- Right: Coach + Move List -->
+    <div class="sidebar-section">
+        <!-- Coach Card -->
+        <div class="coach-card">
+            <div class="coach-header">
+                <img src="{{ url_for('static', filename='images/coach.jpg') }}"
+                     alt="Stockmeister"
+                     class="coach-avatar">
+                <div>
+                    <h6 class="mb-0" style="color: var(--accent); font-weight: 600;">Stockmeister</h6>
+                    <small class="text-white-50">
                         {% if error.error_type == 'blunder' %}
                             💥 Grober Fehler
                         {% elif error.error_type == 'mistake' %}
@@ -201,67 +323,24 @@
                         {% else %}
                             📊 Ungenauigkeit
                         {% endif %}
-                        - Zug {{ error.move_number }}
-                    </h5>
-                    <div class="turn-indicator">
-                        <div class="turn-dot" id="whiteDot"></div>
-                        <span id="turnText" style="font-size: 0.9rem;">Weiß</span>
-                        <div class="turn-dot" id="blackDot"></div>
-                    </div>
-                </div>
-
-                <div class="analysis-container">
-                    <div class="eval-bar-container">
-                        <div class="eval-bar" id="evalBar" style="height: 50%;"></div>
-                        <div class="eval-text" id="evalText">0.0</div>
-                    </div>
-                    <div id="board-wrapper">
-                        <div id="board" style="width: 100%;"></div>
-                    </div>
-                </div>
-
-                <!-- Navigation Controls -->
-                <div class="nav-controls">
-                    <button class="nav-btn" id="btnStart">⏮ Start</button>
-                    <button class="nav-btn" id="btnPrev">◀ Zurück</button>
-                    <span class="move-number" id="moveDisplay">Zug 1</span>
-                    <button class="nav-btn" id="btnNext">Vor ▶</button>
-                    <button class="nav-btn" id="btnEnd">Ende ⏭</button>
-                </div>
-
-                <div class="text-center mt-3">
-                    <small class="text-muted">
-                        ← → Pfeiltasten | Rechtsklick = Pfeile zeichnen
                     </small>
                 </div>
             </div>
+
+            <div class="coach-bubble" id="coachExplanation">
+                <!-- Dynamic explanation -->
+            </div>
         </div>
-    </div>
 
-    <!-- Right: Coach Explanation -->
-    <div class="col-lg-5">
-        <div class="card" style="background: linear-gradient(135deg, var(--primary) 0%, #34495e 100%);">
-            <div class="card-body">
-                <div class="d-flex align-items-start gap-3">
-                    <div style="flex-shrink: 0;">
-                        <img src="{{ url_for('static', filename='images/coach.jpg') }}"
-                             alt="Stockmeister"
-                             style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.3); object-fit: cover; object-position: center 30%;">
-                    </div>
-                    <div style="flex: 1;">
-                        <div style="background: rgba(255,255,255,0.15); padding: 1.25rem; border-radius: 1rem; position: relative;">
-                            <!-- Speech bubble arrow -->
-                            <div style="position: absolute; left: -10px; top: 20px; width: 0; height: 0;
-                                        border-top: 10px solid transparent;
-                                        border-bottom: 10px solid transparent;
-                                        border-right: 10px solid rgba(255,255,255,0.15);"></div>
+        <!-- Move List Card -->
+        <div class="move-list-card">
+            <div class="move-list-header">
+                <h6 class="mb-0" style="color: white;">Züge</h6>
+                <small class="text-muted" id="currentMoveInfo">Zug 1</small>
+            </div>
 
-                            <div id="coachExplanation">
-                                <!-- Dynamic explanation -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="move-list" id="moveList">
+                <!-- Moves will be generated by JavaScript -->
             </div>
         </div>
     </div>
@@ -272,20 +351,16 @@ $(document).ready(function() {
     // Game data from server
     const allMoves = {{ moves|tojson }};
     const errorMoveNum = {{ error.move_number }};
-    const errorPosition = '{{ error.position }}';
     const yourMove = '{{ error.move_played }}';
     const bestMove = '{{ error.best_move }}';
     const errorExplanation = {{ error.explanation|tojson }};
     const errorType = '{{ error.error_type }}';
     const cpLoss = {{ error.centipawn_loss }};
-    const evalBefore = {{ error.evaluation_before }};
-    const evalAfter = {{ error.evaluation_after }};
 
     // State
     let currentMoveIndex = 0;
     let board = null;
     let game = new Chess();
-    let userArrows = [];
 
     // Initialize board
     const config = {
@@ -298,6 +373,37 @@ $(document).ready(function() {
 
     board = Chessboard('board', config);
 
+    // Build move list
+    function buildMoveList() {
+        const moveListEl = $('#moveList');
+        moveListEl.empty();
+
+        for (let i = 0; i < allMoves.length; i += 2) {
+            const moveNum = Math.floor(i / 2) + 1;
+            const whiteMove = allMoves[i];
+            const blackMove = allMoves[i + 1];
+
+            const pair = $(`
+                <div class="move-pair">
+                    <div class="move-number">${moveNum}.</div>
+                    <div class="move-item ${i + 1 === errorMoveNum ? 'error-move' : ''}" data-move="${i + 1}">
+                        ${whiteMove.san}
+                    </div>
+                    ${blackMove ? `<div class="move-item ${i + 2 === errorMoveNum ? 'error-move' : ''}" data-move="${i + 2}">${blackMove.san}</div>` : '<div></div>'}
+                </div>
+            `);
+
+            moveListEl.append(pair);
+        }
+
+        // Click handler for moves
+        $('.move-item').on('click', function() {
+            const moveIndex = parseInt($(this).attr('data-move'));
+            currentMoveIndex = moveIndex;
+            updateBoard();
+        });
+    }
+
     // Update board to current move
     function updateBoard() {
         game.reset();
@@ -307,9 +413,8 @@ $(document).ready(function() {
         }
 
         board.position(game.fen());
-        updateTurnIndicator();
-        updateEvaluation();
-        updateMoveDisplay();
+        updateMoveList();
+        updateCurrentMoveInfo();
         updateCoachExplanation();
         clearArrows();
 
@@ -319,66 +424,15 @@ $(document).ready(function() {
                 drawErrorArrows();
             }, 200);
         }
+
+        // Scroll to current move
+        scrollToCurrentMove();
     }
 
-    function updateTurnIndicator() {
-        const whiteDot = $('#whiteDot');
-        const blackDot = $('#blackDot');
-        const turnText = $('#turnText');
-
-        if (game.turn() === 'w') {
-            whiteDot.addClass('active');
-            blackDot.removeClass('active');
-            turnText.text('Weiß');
-        } else {
-            blackDot.addClass('active');
-            whiteDot.removeClass('active');
-            turnText.text('Schwarz');
-        }
-    }
-
-    function updateEvaluation() {
-        const evalBar = $('#evalBar');
-        const evalText = $('#evalText');
-
-        let eval_cp = 0;
-
-        if (currentMoveIndex === errorMoveNum - 1) {
-            eval_cp = evalBefore;
-        } else if (currentMoveIndex === errorMoveNum) {
-            eval_cp = evalAfter;
-        } else {
-            // Estimate based on material for other positions
-            eval_cp = 0;
-        }
-
-        // Convert to percentage (white advantage)
-        const clamped = Math.max(-1000, Math.min(1000, eval_cp));
-        const percentage = ((clamped + 1000) / 2000) * 100;
-
-        evalBar.css('height', percentage + '%');
-
-        const displayEval = (eval_cp / 100).toFixed(1);
-        evalText.text(displayEval);
-
-        // Change text color based on position
-        if (percentage > 60) {
-            evalText.css('color', '#2c3e50');
-        } else {
-            evalText.css('color', 'white');
-        }
-    }
-
-    function updateMoveDisplay() {
-        const moveDisplay = $('#moveDisplay');
-        const moveNum = Math.floor(currentMoveIndex / 2) + 1;
-        const isWhite = currentMoveIndex % 2 === 0;
-
-        if (currentMoveIndex === 0) {
-            moveDisplay.text('Start');
-        } else {
-            const move = allMoves[currentMoveIndex - 1];
-            moveDisplay.text(`Zug ${moveNum} (${isWhite ? 'Weiß' : 'Schwarz'})`);
+    function updateMoveList() {
+        $('.move-item').removeClass('active');
+        if (currentMoveIndex > 0) {
+            $(`.move-item[data-move="${currentMoveIndex}"]`).addClass('active');
         }
 
         // Update button states
@@ -388,14 +442,25 @@ $(document).ready(function() {
         $('#btnEnd').prop('disabled', currentMoveIndex >= allMoves.length);
     }
 
+    function updateCurrentMoveInfo() {
+        const infoEl = $('#currentMoveInfo');
+        if (currentMoveIndex === 0) {
+            infoEl.text('Startposition');
+        } else {
+            const moveNum = Math.floor((currentMoveIndex - 1) / 2) + 1;
+            const color = currentMoveIndex % 2 === 1 ? 'Weiß' : 'Schwarz';
+            infoEl.text(`Zug ${moveNum} - ${color}`);
+        }
+    }
+
     function updateCoachExplanation() {
         const explanationDiv = $('#coachExplanation');
 
         if (currentMoveIndex === errorMoveNum - 1) {
             // Before error
             explanationDiv.html(`
-                <h5 style="color: var(--accent);">⚠️ Achtung!</h5>
-                <p class="mb-0">In dieser Position musst du vorsichtig sein. Der nächste Zug wird zum Fehler.</p>
+                <p class="mb-2" style="color: var(--accent); font-weight: 600;">⚠️ Achtung!</p>
+                <p class="mb-0" style="font-size: 0.95rem; line-height: 1.5;">In dieser Position musst du vorsichtig sein. Der nächste Zug wird zum Fehler.</p>
             `);
         } else if (currentMoveIndex === errorMoveNum) {
             // After error - show full explanation
@@ -403,18 +468,25 @@ $(document).ready(function() {
             const errorName = errorType === 'blunder' ? 'Grober Fehler' : errorType === 'mistake' ? 'Fehler' : 'Ungenauigkeit';
 
             explanationDiv.html(`
-                <h5 style="color: var(--accent);">${errorIcon} ${errorName}</h5>
-                <p class="mb-3" style="line-height: 1.6;">${errorExplanation}</p>
-                <div class="text-center">
-                    <small class="text-muted">Verlust: <strong style="color: #e74c3c;">${(cpLoss / 100).toFixed(1)}</strong> Bauern</small>
-                </div>
+                <p class="mb-2" style="color: var(--accent); font-weight: 600;">${errorIcon} ${errorName}</p>
+                <p class="mb-2" style="font-size: 0.95rem; line-height: 1.5;">${errorExplanation}</p>
+                <small class="text-muted">Verlust: <strong style="color: #e74c3c;">${(cpLoss / 100).toFixed(1)}</strong> Bauern</small>
             `);
         } else {
             // Normal position
             explanationDiv.html(`
-                <h5 style="color: var(--accent);">Partie durchgehen</h5>
-                <p class="mb-0">Nutze die Navigation oder Pfeiltasten (← →) um durch die Partie zu gehen.</p>
+                <p class="mb-2" style="color: var(--accent); font-weight: 600;">Partie durchgehen</p>
+                <p class="mb-0" style="font-size: 0.95rem;">Klicke auf einen Zug in der Liste oder nutze die Pfeiltasten (← →).</p>
             `);
+        }
+    }
+
+    function scrollToCurrentMove() {
+        const activeMove = $('.move-item.active');
+        if (activeMove.length > 0) {
+            const container = $('.move-list-card');
+            const scrollTop = activeMove.offset().top - container.offset().top + container.scrollTop() - 100;
+            container.animate({ scrollTop: scrollTop }, 300);
         }
     }
 
@@ -441,7 +513,6 @@ $(document).ready(function() {
         const fromPos = getSquareCenter(fromSq, squareSize);
         const toPos = getSquareCenter(toSq, squareSize);
 
-        // Calculate arrow direction and shorten it
         const dx = toPos.x - fromPos.x;
         const dy = toPos.y - fromPos.y;
         const length = Math.sqrt(dx * dx + dy * dy);
@@ -481,7 +552,6 @@ $(document).ready(function() {
 
     function clearArrows() {
         $('.arrow').remove();
-        userArrows = [];
     }
 
     // Navigation
@@ -597,7 +667,8 @@ $(document).ready(function() {
         $square.css('position', 'relative').append(hint);
     }
 
-    // Initialize at error position
+    // Initialize
+    buildMoveList();
     currentMoveIndex = errorMoveNum - 1;
     updateBoard();
 
