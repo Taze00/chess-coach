@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Fehler-Detail - Chess Coach{% endblock %}
+
+{% block extra_head %}
+<!-- jQuery (must load before chessboard.js) -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<!-- Chess.js for move validation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<!-- Chessboard.js for board display -->
+<link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <a href="{{ url_for('errors') }}" class="btn btn-sm btn-outline-light">← Zurück zur Übersicht</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-7 mb-4">
+        <!-- Chess Board -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">Stellung</h5>
+                <div class="chess-board-container">
+                    <div id="board" style="width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <!-- Error Info -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="error-icon me-3" style="font-size: 3rem;">
+                        {% if error.error_type == 'blunder' %}
+                            💥
+                        {% elif error.error_type == 'mistake' %}
+                            ⚠️
+                        {% else %}
+                            📊
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h3 class="mb-1">Zug {{ error.move_number }}</h3>
+                        <span class="error-badge error-badge-{{ error.error_type }}">
+                            {% if error.error_type == 'blunder' %}
+                                Grober Fehler
+                            {% elif error.error_type == 'mistake' %}
+                                Fehler
+                            {% else %}
+                                Ungenauigkeit
+                            {% endif %}
+                            (-{{ (error.centipawn_loss / 100)|round(1) }})
+                        </span>
+                    </div>
+                </div>
+
+                <div class="position-info">
+                    <h6 class="mb-3">Bewertung</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Vor dem Zug:</span>
+                        <strong>{{ error.evaluation_before }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Nach dem Zug:</span>
+                        <strong style="color: #e74c3c;">{{ error.evaluation_after }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Move Comparison -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="mb-3">Züge</h5>
+                <div class="move-comparison">
+                    <div class="move-box played">
+                        <div class="move-label">Du spieltest</div>
+                        <div class="move-notation" style="color: #e74c3c;">{{ error.move_played }}</div>
+                    </div>
+                    <div class="move-box better">
+                        <div class="move-label">Besser wäre</div>
+                        <div class="move-notation" style="color: #27ae60;">{{ error.best_move }}</div>
+                    </div>
+                </div>
+                <button id="showBestMove" class="btn btn-success w-100 mt-3">
+                    Besten Zug anzeigen
+                </button>
+                <button id="resetBoard" class="btn btn-secondary w-100 mt-2" style="display: none;">
+                    Zurücksetzen
+                </button>
+            </div>
+        </div>
+
+        <!-- Explanation -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">Erklärung</h5>
+                <p class="mb-0">{{ error.explanation }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Initialize chess game
+    const game = new Chess('{{ error.position }}');
+    let board = null;
+
+    // Board configuration
+    const config = {
+        draggable: false,
+        position: '{{ error.position }}',
+        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+    };
+
+    // Initialize board
+    board = Chessboard('board', config);
+
+    // Show best move
+    $('#showBestMove').on('click', function() {
+        const bestMove = '{{ error.best_move }}';
+
+        // Make the best move
+        try {
+            game.move({from: bestMove.slice(0, 2), to: bestMove.slice(2, 4)});
+            board.position(game.fen());
+        } catch (e) {
+            console.error('Error making move:', e);
+        }
+
+        $(this).hide();
+        $('#resetBoard').show();
+    });
+
+    // Reset board
+    $('#resetBoard').on('click', function() {
+        game.load('{{ error.position }}');
+        board.position('{{ error.position }}');
+
+        $(this).hide();
+        $('#showBestMove').show();
+    });
+
+    // Responsive board
+    $(window).resize(function() {
+        board.resize();
+    });
+});
+</script>
+{% endblock %}

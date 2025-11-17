@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Registrieren - Chess Coach{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4">Account erstellen</h2>
+
+                <form method="POST" action="{{ url_for('auth.register') }}">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="chesscom_username" class="form-label">Chess.com Username</label>
+                        <input type="text" class="form-control" id="chesscom_username" name="chesscom_username" required>
+                        <div class="form-text">Dein Username auf Chess.com</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Passwort</label>
+                        <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                        <div class="form-text">Mindestens 6 Zeichen</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password_confirm" class="form-label">Passwort bestätigen</label>
+                        <input type="password" class="form-control" id="password_confirm" name="password_confirm" required minlength="6">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mb-3">Registrieren</button>
+                </form>
+
+                <div class="text-center">
+                    <p class="mb-0">Schon registriert? <a href="{{ url_for('auth.login') }}">Hier einloggen</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

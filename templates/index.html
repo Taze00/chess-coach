@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Chess Coach - Dein personalisierter Schach-Trainer{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section text-center mb-5">
+    <h1 class="display-3 fw-bold mb-3">♟️ Chess Coach</h1>
+    <p class="lead text-muted mb-4">Dein personalisierter Schach-Trainer</p>
+    <p class="fs-5 mb-4">
+        Analysiere deine Spiele, finde deine Schwächen, und trainiere gezielt mit personalisierten Taktikaufgaben.
+    </p>
+    <div class="d-flex gap-3 justify-content-center">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">Jetzt starten</a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary btn-lg">Login</a>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="row mt-5">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="feature-icon mb-3">
+                    <span class="display-4">🔍</span>
+                </div>
+                <h3 class="card-title">Analyse</h3>
+                <p class="card-text">
+                    Importiere deine Chess.com Spiele automatisch und lass Stockfish deine Fehler finden.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="feature-icon mb-3">
+                    <span class="display-4">🎯</span>
+                </div>
+                <h3 class="card-title">Training</h3>
+                <p class="card-text">
+                    Erhalte Lichess-Puzzles die GENAU deine individuellen Schwächen trainieren.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="feature-icon mb-3">
+                    <span class="display-4">📈</span>
+                </div>
+                <h3 class="card-title">Wachsen</h3>
+                <p class="card-text">
+                    Tracke deinen Fortschritt und sieh wie deine Fehlerrate über Zeit sinkt.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How it Works -->
+<div class="row mt-5">
+    <div class="col-lg-8 mx-auto">
+        <h2 class="text-center mb-4">So funktioniert's</h2>
+        <ol class="list-group list-group-numbered">
+            <li class="list-group-item">
+                <strong>Account erstellen</strong> - Verknüpfe deinen Chess.com Username
+            </li>
+            <li class="list-group-item">
+                <strong>Spiele importieren</strong> - Automatischer Import deiner letzten Partien
+            </li>
+            <li class="list-group-item">
+                <strong>Analyse starten</strong> - Stockfish findet deine häufigsten Fehler
+            </li>
+            <li class="list-group-item">
+                <strong>Training beginnen</strong> - Löse Puzzles die DEINE Schwächen trainieren
+            </li>
+            <li class="list-group-item">
+                <strong>Fortschritt sehen</strong> - Beobachte wie deine Fehlerrate sinkt
+            </li>
+        </ol>
+    </div>
+</div>
+
+<!-- Testimonials Section -->
+<div class="mt-5 py-5">
+    <h2 class="text-center mb-5">Was Spieler sagen</h2>
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <span class="text-warning">★★★★★</span>
+                    </div>
+                    <p class="card-text mb-3">
+                        "Endlich verstehe ich meine Fehler! Von 700 auf 950 ELO in 6 Wochen."
+                    </p>
+                    <p class="text-muted mb-0"><strong>Marcus K.</strong></p>
+                    <small class="text-muted">Chess.com: 950 ELO</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <span class="text-warning">★★★★★</span>
+                    </div>
+                    <p class="card-text mb-3">
+                        "Die personalisierten Puzzles machen den Unterschied. Ich lasse keine Figuren mehr hängen!"
+                    </p>
+                    <p class="text-muted mb-0"><strong>Sarah L.</strong></p>
+                    <small class="text-muted">Chess.com: 1200 ELO</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <span class="text-warning">★★★★★</span>
+                    </div>
+                    <p class="card-text mb-3">
+                        "Besser als jeder Online-Kurs. Zeigt mir genau wo ich schwach bin."
+                    </p>
+                    <p class="text-muted mb-0"><strong>Tom W.</strong></p>
+                    <small class="text-muted">Chess.com: 1100 ELO</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

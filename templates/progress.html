@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Fortschritt - Chess Coach{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="mb-3">Fortschritt</h1>
+        <p class="text-muted">Verfolge deine Verbesserung über Zeit</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="alert alert-warning">
+            <h6 class="alert-heading">Feature in Entwicklung</h6>
+            <p class="mb-0">
+                Die Analytics-Seite wird in Phase 6 implementiert.
+                Hier wirst du Charts und Statistiken zu deinen Fehlern und Fortschritt sehen.
+            </p>
+        </div>
+
+        <div class="text-center py-5">
+            <span class="display-1">📈</span>
+            <p class="lead mt-3">Analytics kommen bald!</p>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Zurück zum Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
