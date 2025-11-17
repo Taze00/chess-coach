@@ -41,7 +41,7 @@
 
 .board-section {
     flex: 0 0 auto;
-    width: 600px;
+    width: 700px;
 }
 
 .sidebar-section {
@@ -275,7 +275,7 @@
     <!-- Left: Chess Board -->
     <div class="board-section">
         <div id="board-wrapper" style="position: relative;">
-            <div id="board" style="width: 600px;"></div>
+            <div id="board" style="width: 700px; height: 700px;"></div>
         </div>
 
         <!-- Navigation Controls -->
@@ -345,6 +345,10 @@ $(document).ready(function() {
     const errorType = '{{ error.error_type }}';
     const cpLoss = {{ error.centipawn_loss }};
 
+    console.log('Initializing chess board...');
+    console.log('Total moves:', allMoves.length);
+    console.log('First 3 moves:', allMoves.slice(0, 3));
+
     // State
     let currentMoveIndex = 0;
     let board = null;
@@ -360,6 +364,7 @@ $(document).ready(function() {
     };
 
     board = Chessboard('board', config);
+    console.log('Board initialized:', board);
 
     // Build move list
     function buildMoveList() {
@@ -394,13 +399,27 @@ $(document).ready(function() {
 
     // Update board to current move
     function updateBoard() {
+        console.log('updateBoard called, currentMoveIndex:', currentMoveIndex);
         game.reset();
 
         for (let i = 0; i < currentMoveIndex; i++) {
-            game.move(allMoves[i].uci);
+            const move = allMoves[i];
+            console.log(`Applying move ${i+1}:`, move);
+
+            // Try SAN notation first (e4, Nf3, etc.)
+            let result = game.move(move.san);
+
+            if (!result) {
+                console.error('Failed to apply move:', move);
+            }
         }
 
-        board.position(game.fen());
+        const newFen = game.fen();
+        console.log('New FEN:', newFen);
+        console.log('Calling board.position()...');
+        board.position(newFen);
+        console.log('Board position updated');
+
         updateMoveList();
         updateCurrentMoveInfo();
         updateCoachExplanation();
