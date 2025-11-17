@@ -722,14 +722,14 @@ class StockfishAnalyzer:
             # CRITICAL: Did you miss mate?
             if missed_mate:
                 explanation_parts.append(
-                    f"**KRITISCH!** Du hattest Matt in {missed_mate} {'Zug' if missed_mate == 1 else 'Zügen'}! "
-                    f"Der Zug **{player_move_readable}** lässt diese Chance aus."
+                    f"<strong>KRITISCH!</strong> Du hattest Matt in {missed_mate} {'Zug' if missed_mate == 1 else 'Zügen'}! "
+                    f"Der Zug <strong>{player_move_readable}</strong> lässt diese Chance aus."
                 )
             # Important: Should you have castled?
             elif missed_castle and centipawn_loss >= 50:
                 if "Rochade" in best_patterns:
                     explanation_parts.append(
-                        f"Dein König steht unsicher! Der Zug **{player_move_readable}** lässt ihn im Zentrum."
+                        f"Dein König steht unsicher! Der Zug <strong>{player_move_readable}</strong> lässt ihn im Zentrum."
                     )
 
             # What's wrong with your move?
@@ -740,44 +740,44 @@ class StockfishAnalyzer:
                     # Check what tactical pattern causes the loss
                     if 'Gabel' in your_consequences['opponent_threats']:
                         explanation_parts.append(
-                            f"Nach deinem Zug **{player_move_readable}** kann der Gegner eine Gabel machen und deinen {lost['name']} gewinnen."
+                            f"Nach deinem Zug <strong>{player_move_readable}</strong> kann der Gegner eine Gabel machen und deinen {lost['name']} gewinnen."
                         )
                     elif 'Fesselung' in your_consequences['opponent_threats']:
                         explanation_parts.append(
-                            f"Nach **{player_move_readable}** kann der Gegner deinen {lost['name']} fesseln und ihn dann gewinnen."
+                            f"Nach <strong>{player_move_readable}</strong> kann der Gegner deinen {lost['name']} fesseln und ihn dann gewinnen."
                         )
                     elif 'Grundreihenmatt-Drohung' in your_consequences['opponent_threats']:
                         explanation_parts.append(
-                            f"Nach **{player_move_readable}** droht Grundreihenmatt! Du verlierst deinen {lost['name']} oder wirst matt gesetzt."
+                            f"Nach <strong>{player_move_readable}</strong> droht Grundreihenmatt! Du verlierst deinen {lost['name']} oder wirst matt gesetzt."
                         )
                     else:
                         explanation_parts.append(
-                            f"Nach deinem Zug **{player_move_readable}** verlierst du deinen {lost['name']} auf {lost['square']}. "
+                            f"Nach deinem Zug <strong>{player_move_readable}</strong> verlierst du deinen {lost['name']} auf {lost['square']}. "
                             f"Der Gegner kann ihn einfach schlagen."
                         )
             elif your_consequences['opponent_threats']:
                 # Tactical threat but no immediate capture
                 threat = your_consequences['opponent_threats'][0]
                 threat_messages = {
-                    'Gabel': f"Nach **{player_move_readable}** kann der Gegner eine Gabel machen und Material gewinnen.",
-                    'Fesselung': f"Nach **{player_move_readable}** kann der Gegner eine wichtige Figur fesseln.",
-                    'Spieß': f"Nach **{player_move_readable}** kann der Gegner einen Spieß machen.",
-                    'Grundreihenmatt-Drohung': f"Nach **{player_move_readable}** droht der Gegner Grundreihenmatt!",
-                    'Ersticktes Matt': f"Nach **{player_move_readable}** droht ersticktes Matt!",
-                    'Abzugsschach': f"Nach **{player_move_readable}** kann der Gegner Abzugsschach geben.",
-                    'Doppelangriff': f"Nach **{player_move_readable}** kann der Gegner einen Doppelangriff starten."
+                    'Gabel': f"Nach <strong>{player_move_readable}</strong> kann der Gegner eine Gabel machen und Material gewinnen.",
+                    'Fesselung': f"Nach <strong>{player_move_readable}</strong> kann der Gegner eine wichtige Figur fesseln.",
+                    'Spieß': f"Nach <strong>{player_move_readable}</strong> kann der Gegner einen Spieß machen.",
+                    'Grundreihenmatt-Drohung': f"Nach <strong>{player_move_readable}</strong> droht der Gegner Grundreihenmatt!",
+                    'Ersticktes Matt': f"Nach <strong>{player_move_readable}</strong> droht ersticktes Matt!",
+                    'Abzugsschach': f"Nach <strong>{player_move_readable}</strong> kann der Gegner Abzugsschach geben.",
+                    'Doppelangriff': f"Nach <strong>{player_move_readable}</strong> kann der Gegner einen Doppelangriff starten."
                 }
                 explanation_parts.append(threat_messages.get(threat,
-                    f"Nach **{player_move_readable}** hat der Gegner eine starke taktische Drohung."))
+                    f"Nach <strong>{player_move_readable}</strong> hat der Gegner eine starke taktische Drohung."))
             elif your_consequences['pieces_threatened']:
                 threatened = your_consequences['pieces_threatened'][0]
                 explanation_parts.append(
-                    f"Nach **{player_move_readable}** steht dein {threatened['name']} auf {threatened['square']} ungedeckt und wird angegriffen."
+                    f"Nach <strong>{player_move_readable}</strong> steht dein {threatened['name']} auf {threatened['square']} ungedeckt und wird angegriffen."
                 )
             else:
                 # No immediate material loss - it's positional
                 explanation_parts.append(
-                    f"Der Zug **{player_move_readable}** schwächt deine Stellung erheblich."
+                    f"Der Zug <strong>{player_move_readable}</strong> schwächt deine Stellung erheblich."
                 )
 
             # Why is the best move better?
@@ -816,7 +816,7 @@ class StockfishAnalyzer:
                 best_reasons.append("hält deine Position stabil")
 
             explanation_parts.append(
-                f"Besser wäre **{best_move_readable}** gewesen, das {' und '.join(best_reasons)}."
+                f"Besser wäre <strong>{best_move_readable}</strong> gewesen, das {' und '.join(best_reasons)}."
             )
 
             # Add severity
@@ -857,10 +857,10 @@ class StockfishAnalyzer:
             if board.is_castling(move):
                 # Kingside (short) castling
                 if move.to_square > move.from_square:
-                    return "O-O (Kurze Rochade)"
+                    return "O-O"
                 # Queenside (long) castling
                 else:
-                    return "O-O-O (Lange Rochade)"
+                    return "O-O-O"
 
             piece = board.piece_at(move.from_square)
             if not piece:
@@ -892,12 +892,9 @@ class StockfishAnalyzer:
                 else:
                     return to_square
 
-            # For other pieces: Piece + capture + square
+            # For other pieces: Just piece symbol + capture + square (no piece name)
             result = f"{piece_symbol}{capture_symbol}{to_square}"
-
-            # Add piece name in parentheses for clarity
-            piece_name = self._get_piece_name(piece)
-            return f"{result} ({piece_name})"
+            return result
 
         except Exception as e:
             print(f"Error converting UCI to readable: {e}")

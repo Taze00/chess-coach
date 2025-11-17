@@ -58,12 +58,15 @@ def index():
 @login_required
 def dashboard():
     """Main dashboard for logged-in users."""
+    from models import Error
+
     # Get user statistics
     games_count = Game.query.filter_by(user_id=current_user.id).count()
+    errors_count = Error.query.filter_by(user_id=current_user.id).count()
 
     stats = {
         'games_count': games_count,
-        'errors_count': 0,  # Will be populated in Phase 3
+        'errors_count': errors_count,
         'puzzles_solved': 0  # Will be populated in Phase 5
     }
     return render_template('dashboard.html', stats=stats)
@@ -102,6 +105,8 @@ def errors():
 def error_detail(error_id):
     """Detailed error analysis page with chess board."""
     from models import Error
+    import chess.pgn
+    from io import StringIO
 
     # Get error and verify ownership
     error = Error.query.get_or_404(error_id)
@@ -109,7 +114,24 @@ def error_detail(error_id):
     if error.user_id != current_user.id:
         abort(403)
 
-    return render_template('error_detail.html', error=error)
+    # Get the game to access full PGN
+    game = Game.query.get(error.game_id)
+
+    # Parse PGN to get all moves
+    pgn = chess.pgn.read_game(StringIO(game.pgn))
+
+    # Extract all moves from the game
+    moves = []
+    board = pgn.board()
+    for move in pgn.mainline_moves():
+        moves.append({
+            'uci': move.uci(),
+            'san': board.san(move),
+            'fen': board.fen()
+        })
+        board.push(move)
+
+    return render_template('error_detail.html', error=error, game=game, moves=moves)
 
 
 @app.route('/training')
