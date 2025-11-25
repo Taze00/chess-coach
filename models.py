@@ -101,6 +101,11 @@ class PuzzleProgress(db.Model):
     last_attempt = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Performance tracking
+    solve_time_seconds = db.Column(db.Integer)  # Time taken to solve in seconds
+    rating = db.Column(db.Integer)  # Puzzle rating at time of attempt
+    tactical_pattern = db.Column(db.String(100))  # Primary tactical pattern
+
     def __repr__(self):
         return f'<PuzzleProgress {self.puzzle_id} - Solved: {self.solved}>'
 

@@ -612,6 +612,10 @@
     var historyIndex = -1; // Aktueller Index in der History (-1 = aktuelle Position)
     var isViewingHistory = false; // Ob wir gerade in der History navigieren
 
+    // Zeit-Tracking für Performance-Analytics
+    var puzzleStartTime = null; // Timestamp wenn Puzzle geladen wird
+    var puzzleSolveTime = null; // Zeit in Sekunden bis zur Lösung
+
     // Figuren-Bilder (Wikipedia)
     const pieceImages = {
         'wP': 'https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg',
@@ -1039,6 +1043,10 @@
                     currentPuzzle = response.puzzle;
                     currentSolutionMoves = currentPuzzle.moves;
                     currentMoveIndex = 0;
+
+                    // Starte Zeit-Tracking
+                    puzzleStartTime = Date.now();
+                    puzzleSolveTime = null;
 
                     console.log('Puzzle ID:', currentPuzzle.id);
                     console.log('Puzzle FEN:', currentPuzzle.fen);
@@ -1702,6 +1710,19 @@
     function submitPuzzleResult(solved) {
         if (!currentPuzzle) return;
 
+        // Berechne Lösungszeit
+        if (solved && puzzleStartTime && !puzzleSolveTime) {
+            puzzleSolveTime = Math.floor((Date.now() - puzzleStartTime) / 1000); // in Sekunden
+            console.log('Puzzle gelöst in', puzzleSolveTime, 'Sekunden');
+        }
+
+        // Extrahiere primäres taktisches Pattern
+        var primaryPattern = null;
+        if (currentPuzzle.themes && currentPuzzle.themes.length > 0) {
+            // Nehme das erste Theme als primäres Pattern
+            primaryPattern = currentPuzzle.themes[0];
+        }
+
         $.ajax({
             url: '/api/submit-puzzle',
             method: 'POST',
@@ -1709,7 +1730,10 @@
             data: JSON.stringify({
                 puzzle_id: currentPuzzle.id,
                 solved: solved,
-                error_type: currentPuzzle.error_type
+                error_type: currentPuzzle.error_type,
+                solve_time_seconds: puzzleSolveTime,
+                rating: currentPuzzle.rating,
+                tactical_pattern: primaryPattern
             }),
             success: function(response) {
                 console.log('Puzzle-Ergebnis gespeichert:', response);

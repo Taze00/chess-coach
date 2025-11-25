@@ -441,6 +441,9 @@ def submit_puzzle():
         puzzle_id = data.get('puzzle_id')
         solved = data.get('solved', False)
         error_type = data.get('error_type')
+        solve_time = data.get('solve_time_seconds')  # Time in seconds
+        rating = data.get('rating')  # Puzzle rating
+        tactical_pattern = data.get('tactical_pattern')  # Primary pattern
 
         if not puzzle_id:
             return jsonify({
@@ -466,6 +469,14 @@ def submit_puzzle():
         progress.attempts += 1
         progress.last_attempt = datetime.utcnow()
 
+        # Save analytics data
+        if solve_time:
+            progress.solve_time_seconds = solve_time
+        if rating:
+            progress.rating = rating
+        if tactical_pattern:
+            progress.tactical_pattern = tactical_pattern
+
         if solved and not progress.solved:
             progress.solved = True
 
@@ -484,6 +495,144 @@ def submit_puzzle():
         return jsonify({
             'success': False,
             'message': 'Fehler beim Speichern.'
+        }), 500
+
+
+@app.route('/api/puzzle-statistics', methods=['GET'])
+@login_required
+def get_puzzle_statistics():
+    """
+    Get detailed puzzle statistics for the current user.
+
+    Returns:
+        JSON with comprehensive analytics:
+        - Total puzzles attempted/solved
+        - Success rate by tactical pattern
+        - Average solve time
+        - Difficulty breakdown
+        - Recent progress
+    """
+    try:
+        # Get all puzzle progress for user
+        all_progress = PuzzleProgress.query.filter_by(
+            user_id=current_user.id
+        ).all()
+
+        solved_puzzles = [p for p in all_progress if p.solved]
+
+        # Overall statistics
+        total_attempted = len(all_progress)
+        total_solved = len(solved_puzzles)
+        success_rate = (total_solved / total_attempted * 100) if total_attempted > 0 else 0
+
+        # Average solve time (only for solved puzzles with time data)
+        solve_times = [p.solve_time_seconds for p in solved_puzzles if p.solve_time_seconds]
+        avg_solve_time = sum(solve_times) / len(solve_times) if solve_times else 0
+
+        # Pattern-based statistics
+        pattern_stats = {}
+        for progress in solved_puzzles:
+            if progress.tactical_pattern:
+                pattern = progress.tactical_pattern
+                if pattern not in pattern_stats:
+                    pattern_stats[pattern] = {'solved': 0, 'total': 0, 'avg_time': []}
+                pattern_stats[pattern]['solved'] += 1
+                if progress.solve_time_seconds:
+                    pattern_stats[pattern]['avg_time'].append(progress.solve_time_seconds)
+
+        # Count total attempts per pattern
+        for progress in all_progress:
+            if progress.tactical_pattern:
+                pattern = progress.tactical_pattern
+                if pattern in pattern_stats:
+                    pattern_stats[pattern]['total'] += 1
+
+        # Calculate success rates and average times per pattern
+        pattern_breakdown = []
+        for pattern, stats in pattern_stats.items():
+            success_rate_pattern = (stats['solved'] / stats['total'] * 100) if stats['total'] > 0 else 0
+            avg_time_pattern = sum(stats['avg_time']) / len(stats['avg_time']) if stats['avg_time'] else 0
+
+            pattern_breakdown.append({
+                'pattern': pattern,
+                'solved': stats['solved'],
+                'total': stats['total'],
+                'success_rate': round(success_rate_pattern, 1),
+                'avg_time_seconds': round(avg_time_pattern, 1)
+            })
+
+        # Sort by success rate (lowest first - needs practice)
+        pattern_breakdown.sort(key=lambda x: x['success_rate'])
+
+        # Difficulty breakdown
+        difficulty_stats = {
+            'easy': {'solved': 0, 'total': 0},
+            'medium': {'solved': 0, 'total': 0},
+            'hard': {'solved': 0, 'total': 0}
+        }
+
+        for progress in all_progress:
+            if progress.rating:
+                if progress.rating < 1400:
+                    difficulty = 'easy'
+                elif progress.rating > 1700:
+                    difficulty = 'hard'
+                else:
+                    difficulty = 'medium'
+
+                difficulty_stats[difficulty]['total'] += 1
+                if progress.solved:
+                    difficulty_stats[difficulty]['solved'] += 1
+
+        # Recent activity (last 7 days)
+        from datetime import timedelta
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        recent_puzzles = [p for p in all_progress if p.last_attempt and p.last_attempt >= seven_days_ago]
+        recent_solved = [p for p in recent_puzzles if p.solved]
+
+        return jsonify({
+            'success': True,
+            'statistics': {
+                'overall': {
+                    'total_attempted': total_attempted,
+                    'total_solved': total_solved,
+                    'success_rate': round(success_rate, 1),
+                    'avg_solve_time_seconds': round(avg_solve_time, 1)
+                },
+                'pattern_breakdown': pattern_breakdown,
+                'difficulty': {
+                    'easy': {
+                        'solved': difficulty_stats['easy']['solved'],
+                        'total': difficulty_stats['easy']['total'],
+                        'success_rate': round((difficulty_stats['easy']['solved'] / difficulty_stats['easy']['total'] * 100) if difficulty_stats['easy']['total'] > 0 else 0, 1)
+                    },
+                    'medium': {
+                        'solved': difficulty_stats['medium']['solved'],
+                        'total': difficulty_stats['medium']['total'],
+                        'success_rate': round((difficulty_stats['medium']['solved'] / difficulty_stats['medium']['total'] * 100) if difficulty_stats['medium']['total'] > 0 else 0, 1)
+                    },
+                    'hard': {
+                        'solved': difficulty_stats['hard']['solved'],
+                        'total': difficulty_stats['hard']['total'],
+                        'success_rate': round((difficulty_stats['hard']['solved'] / difficulty_stats['hard']['total'] * 100) if difficulty_stats['hard']['total'] > 0 else 0, 1)
+                    }
+                },
+                'recent': {
+                    'last_7_days': {
+                        'attempted': len(recent_puzzles),
+                        'solved': len(recent_solved)
+                    }
+                }
+            }
+        })
+
+    except Exception as e:
+        print(f"Error getting puzzle statistics: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': 'Fehler beim Laden der Statistiken.'
         }), 500
 
 
