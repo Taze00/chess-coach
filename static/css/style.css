@@ -3,7 +3,7 @@
 :root {
     --primary: #2C3E50;      /* Dunkelblau-Grau (wie Schachbrett) */
     --secondary: #3498DB;    /* Helles Blau */
-    --accent: #E67E22;       /* Orange (warm, freundlich) */
+    --accent: #3498DB;       /* Hellblau (modern, klar) */
     --success: #27AE60;      /* Grün */
     --background: #34495e;   /* Dunkles Blau-Grau */
     --text: #ECF0F1;         /* Hell (für dunklen Hintergrund) */

@@ -2,29 +2,1722 @@
 
 {% block title %}Training - Stockmeister{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Container margin entfernen */
+    main.container.my-5 {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    /* Flip Board Button */
+    .flip-board-btn {
+        position: absolute;
+        top: 10px;
+        left: -50px;
+        width: 40px;
+        height: 40px;
+        background: rgba(44, 62, 80, 0.9);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        z-index: 10;
+    }
+
+    .flip-board-btn:hover {
+        background: rgba(52, 73, 94, 0.95);
+        border-color: var(--accent);
+        transform: scale(1.05);
+    }
+
+    .flip-board-btn svg {
+        width: 24px;
+        height: 24px;
+        fill: white;
+    }
+
+    /* Eigenes Schachbrett - CSS Grid */
+    #chessboard {
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        grid-template-rows: repeat(8, 1fr);
+        aspect-ratio: 1;
+        position: relative;
+        user-select: none;
+    }
+
+    /* Responsive */
+    @media (min-width: 1400px) {
+        #chessboard {
+            max-width: 750px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        #chessboard {
+            max-width: 500px;
+        }
+    }
+
+    /* Einzelne Felder */
+    .square {
+        position: relative;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Helle Felder */
+    .square.light {
+        background-color: #95a5a6;
+    }
+
+    /* Dunkle Felder */
+    .square.dark {
+        background-color: #2c3e50;
+    }
+
+    /* Koordinaten */
+    .square .coord {
+        position: absolute;
+        font-size: 16px;
+        font-weight: 700;
+        opacity: 0.9;
+        z-index: 1;
+    }
+
+    .square .coord.file {
+        bottom: 3px;
+        right: 4px;
+    }
+
+    .square .coord.rank {
+        top: 3px;
+        left: 4px;
+    }
+
+    .square.light .coord {
+        color: #2c3e50;
+    }
+
+    .square.dark .coord {
+        color: #95a5a6;
+    }
+
+    /* Figuren als Bilder */
+    .square .piece {
+        width: 95%;
+        height: 95%;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        transition: transform 0.2s ease;
+        /* pointer-events: none entfernt - jetzt kann man Figuren greifen */
+    }
+
+    /* Animation für bewegte Figuren */
+    .piece-moving {
+        position: fixed;
+        width: 80px;
+        height: 80px;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        pointer-events: none;
+        z-index: 1000;
+        transition: all 0.5s ease-out;
+    }
+
+    .square.dragging .piece {
+        opacity: 0.5;
+    }
+
+    /* Highlight-Klassen */
+    .square.highlight-source {
+        box-shadow: inset 0 0 0 4px rgba(0, 188, 212, 0.9);
+        background-color: rgba(0, 188, 212, 0.3) !important;
+    }
+
+    .square.highlight-last-move {
+        background-color: rgba(0, 188, 212, 0.4) !important;
+    }
+
+    .square.highlight-last-move.from {
+        box-shadow: inset 0 0 0 3px rgba(100, 181, 246, 0.8);
+    }
+
+    .square.highlight-last-move.to {
+        box-shadow: inset 0 0 0 3px rgba(25, 118, 210, 0.8);
+    }
+
+    .square.highlight-hover {
+        box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.9);
+    }
+
+    .square.dragging .piece {
+        opacity: 0.4;
+    }
+
+    .dragging-piece-ghost {
+        position: fixed;
+        width: 80px;
+        height: 80px;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        pointer-events: none;
+        z-index: 1000;
+        opacity: 0.9;
+        transform: translate(-50%, -50%);
+    }
+
+    /* Cyan Punkt für mögliche Züge */
+    .square.highlight-possible::after {
+        content: "";
+        position: absolute;
+        width: 30%;
+        height: 30%;
+        background-color: rgba(0, 188, 212, 0.6);
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 5;
+    }
+
+    /* Cyan Ring für Schlagzüge */
+    .square.highlight-capture::after {
+        content: "";
+        position: absolute;
+        width: 90%;
+        height: 90%;
+        border: 8px solid rgba(0, 188, 212, 0.7);
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: transparent;
+        z-index: 5;
+    }
+
+    /* Evaluation Bar Container */
+    .evaluation-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .eval-bar-wrapper {
+        width: 40px;
+        align-self: stretch;
+        background: #2c3e50;
+        border-radius: 5px;
+        position: relative;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        min-height: 400px;
+    }
+
+    .eval-bar-white {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #ecf0f1;
+        transition: height 0.3s ease;
+        border-radius: 0 0 5px 5px;
+    }
+
+    .eval-score {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        font-weight: bold;
+        color: #fff;
+        background: rgba(44, 62, 80, 0.95);
+        padding: 2px 6px;
+        border-radius: 2px;
+        z-index: 10;
+        transition: top 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .board-eval-container {
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .board-wrapper {
+        flex: 0 1 auto;
+        width: 700px;
+        max-width: 100%;
+        position: relative;
+    }
+
+    /* Responsive board wrapper */
+    @media (min-width: 1400px) {
+        .board-wrapper {
+            width: 750px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .board-wrapper {
+            width: 500px;
+        }
+    }
+
+    /* Coach Panel rechts */
+    .coach-panel {
+        flex: 0 0 350px;
+        background: rgba(44, 62, 80, 0.3);
+        border-radius: 10px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .coach-panel-top {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        flex: 1;
+    }
+
+    .coach-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .coach-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        object-position: center top;
+        border: 3px solid var(--accent);
+    }
+
+    .coach-info h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: var(--text);
+    }
+
+    .coach-info p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: rgba(236, 240, 241, 0.7);
+    }
+
+    .coach-message {
+        background: rgba(52, 73, 94, 0.5);
+        border-left: 4px solid var(--accent);
+        padding: 15px;
+        border-radius: 5px;
+    }
+
+    .coach-message h4 {
+        margin: 0 0 10px 0;
+        font-size: 1rem;
+        color: var(--accent);
+    }
+
+    .coach-message p {
+        margin: 0;
+        color: var(--text);
+        line-height: 1.6;
+    }
+
+    .puzzle-info {
+        background: rgba(52, 73, 94, 0.5);
+        padding: 15px;
+        border-radius: 5px;
+    }
+
+    .puzzle-info h4 {
+        margin: 0 0 10px 0;
+        font-size: 1rem;
+        color: var(--text);
+    }
+
+    .puzzle-themes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .theme-badge {
+        background: var(--accent);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.85rem;
+    }
+
+    /* Stats und Buttons */
+    .puzzle-stats {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .stat-item {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        background: rgba(52, 73, 94, 0.3);
+        border-radius: 5px;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--accent);
+        display: block;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: rgba(236, 240, 241, 0.7);
+    }
+
+    .puzzle-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .btn-puzzle {
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-hint, .btn-solution, .btn-next {
+        background: rgba(52, 152, 219, 0.2);
+        color: var(--accent);
+        border: 2px solid var(--accent);
+    }
+
+    .btn-hint:hover, .btn-solution:hover, .btn-next:hover {
+        background: rgba(52, 152, 219, 0.3);
+    }
+
+    /* Erfolgs/Fehler Feedback */
+    .feedback {
+        padding: 15px;
+        border-radius: 5px;
+        text-align: center;
+        font-weight: bold;
+        display: none;
+        animation: slideIn 0.3s ease;
+    }
+
+    .feedback.success {
+        background: rgba(39, 174, 96, 0.2);
+        border: 2px solid #27ae60;
+        color: #27ae60;
+    }
+
+    .feedback.error {
+        background: rgba(231, 76, 60, 0.2);
+        border: 2px solid #e74c3c;
+        color: #e74c3c;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Difficulty Badge */
+    .difficulty-badge {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+
+    .difficulty-easy {
+        background: rgba(39, 174, 96, 0.2);
+        color: #27ae60;
+        border: 1px solid #27ae60;
+    }
+
+    .difficulty-medium {
+        background: rgba(241, 196, 15, 0.2);
+        color: #f1c40f;
+        border: 1px solid #f1c40f;
+    }
+
+    .difficulty-hard {
+        background: rgba(231, 76, 60, 0.2);
+        color: #e74c3c;
+        border: 1px solid #e74c3c;
+    }
+
+    @media (max-width: 1200px) {
+        .board-eval-container {
+            flex-wrap: wrap;
+        }
+
+        .coach-panel {
+            flex: 1 1 100%;
+            margin-top: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
+{% if pattern_filter %}
+<!-- Active Pattern Filter -->
+<div class="row mb-3" style="margin-top: 10px;">
     <div class="col">
-        <h1 class="mb-3">Training</h1>
-        <p class="text-muted">Hier kannst du personalisierte Taktikaufgaben lösen</p>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col">
-        <div class="alert alert-warning">
-            <h6 class="alert-heading">Feature in Entwicklung</h6>
-            <p class="mb-0">
-                Das Training-Interface wird in Phase 5 implementiert.
-                Du wirst dann Lichess-Puzzles erhalten die deine Schwächen trainieren.
-            </p>
-        </div>
-
-        <div class="text-center py-5">
-            <span class="display-1">🎯</span>
-            <p class="lead mt-3">Training kommt bald!</p>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Zurück zum Dashboard</a>
+        <div class="alert" style="background: rgba(255, 107, 53, 0.2); border: 1px solid var(--accent); color: white; margin-bottom: 0;">
+            🎯 Du trainierst gezielt: <strong>{{ pattern_translations.get(pattern_filter, pattern_filter) }}</strong>
+            <a href="{{ url_for('training') }}" class="btn btn-sm btn-outline-light ms-2" style="float: right;">Normales Training</a>
         </div>
     </div>
 </div>
+{% endif %}
+
+<div class="row" style="margin-top: {% if pattern_filter %}10px{% else %}10px{% endif %};">
+    <div class="col">
+        <!-- Board mit Evaluation Bar und Coach Panel -->
+        <div class="board-eval-container">
+            <!-- Evaluation Bar (hidden for puzzles) -->
+            <div class="eval-bar-wrapper" style="display: none;">
+                <div class="eval-bar-white" id="evalBarWhite" style="height: 50%;"></div>
+                <div class="eval-score" id="evalScore">0.0</div>
+            </div>
+
+            <!-- Chessboard -->
+            <div class="board-wrapper">
+                <button class="flip-board-btn" id="flipBoardBtn" title="Board drehen">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3z"/>
+                        <path d="M21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>
+                    </svg>
+                </button>
+                <div id="chessboard"></div>
+            </div>
+
+            <!-- Coach Panel -->
+            <div class="coach-panel">
+                <div class="coach-panel-top">
+                    <!-- Coach Header -->
+                    <div class="coach-header">
+                        <img src="{{ url_for('static', filename='images/coach.jpg') }}" alt="Coach" class="coach-avatar">
+                        <div class="coach-info">
+                            <h3>Dein Coach</h3>
+                            <p>Stockmeister</p>
+                        </div>
+                    </div>
+
+                    <!-- Coach Nachricht - Direkt unter Header -->
+                    <div class="coach-message" id="coachMessage">
+                        <h4>Taktikaufgabe</h4>
+                        <p>Finde den besten Zug für Weiß! Überlege dir, welche taktischen Motive in der Stellung vorhanden sind.</p>
+                    </div>
+
+                    <!-- Puzzle Info -->
+                    <div class="puzzle-info">
+                        <h4>Puzzle Info</h4>
+                        <div style="margin-bottom: 10px;">
+                            <span class="difficulty-badge difficulty-medium">⭐⭐ Mittel</span>
+                        </div>
+                        <div class="puzzle-themes">
+                            <span class="theme-badge">Gabel</span>
+                            <span class="theme-badge">Mittelspiel</span>
+                        </div>
+                    </div>
+
+                    <!-- Feedback Box -->
+                    <div class="feedback success" id="feedbackSuccess">
+                        ✓ Richtig! Sehr gut gespielt!
+                    </div>
+                    <div class="feedback error" id="feedbackError">
+                        ❌ Nicht ganz, versuch's nochmal!
+                    </div>
+                </div>
+
+                <!-- Action Buttons unten -->
+                <div class="puzzle-actions">
+                    <button class="btn-puzzle btn-hint" id="btnHint">
+                        Tipp anzeigen
+                    </button>
+                    <button class="btn-puzzle btn-solution" id="btnSolution">
+                        Lösung anzeigen
+                    </button>
+                    <button class="btn-puzzle btn-next" id="btnNext">
+                        Nächstes Puzzle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script>
+    // === EIGENES SCHACHBRETT SYSTEM ===
+    var game = new Chess();
+    var boardOrientation = 'white'; // 'white' oder 'black'
+    var currentMoves = [];
+    var lastMove = null;
+    var currentEvaluation = 0.0;
+    var selectedSquare = null;
+    var draggingPiece = null;
+    var draggingFrom = null;
+
+    // Puzzle Daten
+    var currentPuzzle = null;
+    var currentSolutionMoves = [];
+    var currentMoveIndex = 0;
+    var patternFilter = {{ ('"%s"' % pattern_filter) if pattern_filter else 'null' }};
+    var playerColor = 'w';
+
+    // History Navigation
+    var moveHistory = []; // Speichert alle gespielten Züge
+    var historyIndex = -1; // Aktueller Index in der History (-1 = aktuelle Position)
+    var isViewingHistory = false; // Ob wir gerade in der History navigieren
+
+    // Figuren-Bilder (Wikipedia)
+    const pieceImages = {
+        'wP': 'https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg',
+        'wN': 'https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg',
+        'wB': 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg',
+        'wR': 'https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg',
+        'wQ': 'https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg',
+        'wK': 'https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg',
+        'bP': 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg',
+        'bN': 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg',
+        'bB': 'https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg',
+        'bR': 'https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg',
+        'bQ': 'https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg',
+        'bK': 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg'
+    };
+
+    // Animiere Figuren-Bewegung
+    function animateMove(from, to, callback) {
+        console.log('Animating move from', from, 'to', to);
+
+        // Hole die Figur BEVOR wir die Positionen suchen
+        var piece = game.get(from);
+        if (!piece) {
+            console.error('No piece at', from);
+            if (callback) callback();
+            return;
+        }
+
+        var pieceCode = piece.color + piece.type.toUpperCase();
+        var pieceImage = pieceImages[pieceCode];
+
+        // Finde die DOM-Positionen der Felder
+        var fromSquare = $(`[data-square="${from}"]`);
+        var toSquare = $(`[data-square="${to}"]`);
+
+        if (fromSquare.length === 0 || toSquare.length === 0) {
+            console.error('Could not find squares:', from, fromSquare.length, to, toSquare.length);
+            if (callback) callback();
+            return;
+        }
+
+        // Hole die exakten DOM-Positionen (Offset gibt Position relativ zum Dokument)
+        var fromPos = fromSquare.offset();
+        var toPos = toSquare.offset();
+        var squareSize = fromSquare.outerWidth();
+
+        console.log('Square size:', squareSize, 'From:', fromPos, 'To:', toPos);
+
+        // Berechne die Zentren der Felder
+        var fromCenterX = fromPos.left + (squareSize / 2);
+        var fromCenterY = fromPos.top + (squareSize / 2);
+        var toCenterX = toPos.left + (squareSize / 2);
+        var toCenterY = toPos.top + (squareSize / 2);
+
+        // Erstelle animierte Figur (etwas kleiner als das Feld für bessere Optik)
+        var pieceSize = squareSize * 0.9;
+        var animatedPiece = $('<div>')
+            .addClass('piece-moving')
+            .css({
+                'background-image': `url(${pieceImage})`,
+                'left': fromCenterX + 'px',
+                'top': fromCenterY + 'px',
+                'width': pieceSize + 'px',
+                'height': pieceSize + 'px',
+                'transform': 'translate(-50%, -50%)',
+                'transition': 'none' // Erst keine Transition
+            });
+
+        $('body').append(animatedPiece);
+
+        // Verstecke Original-Figur während Animation
+        fromSquare.find('.piece').css('opacity', '0');
+
+        // Starte Animation nach kurzer Verzögerung (mit Transition)
+        setTimeout(function() {
+            animatedPiece.css({
+                'transition': 'all 0.5s ease-out',
+                'left': toCenterX + 'px',
+                'top': toCenterY + 'px'
+            });
+        }, 20);
+
+        // Nach Animation: Entferne animierte Figur und zeige Board neu
+        setTimeout(function() {
+            animatedPiece.remove();
+            if (callback) callback();
+        }, 540); // Etwas länger als transition (0.5s)
+    }
+
+    // Board-Status rendern
+    function renderBoard() {
+        const boardEl = $('#chessboard');
+        boardEl.empty();
+
+        // chess.js board(): Index 0 = Rank 8, Index 7 = Rank 1
+        const position = game.board();
+
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                // Bestimme chess.js Position
+                let rankIndex, fileIndex;
+
+                if (boardOrientation === 'white') {
+                    // White unten: row 0 = rank 8, row 7 = rank 1
+                    rankIndex = row;
+                    fileIndex = col;
+                } else {
+                    // Black unten: gespiegelt
+                    rankIndex = 7 - row;
+                    fileIndex = 7 - col;
+                }
+
+                // Schachnotation: a1-h8
+                const fileChar = String.fromCharCode(97 + fileIndex); // a-h
+                const rankNum = 8 - rankIndex; // 8-1
+                const squareName = fileChar + rankNum;
+
+                // Figur holen
+                const piece = position[rankIndex][fileIndex];
+
+                // Feldfarbe
+                const isLight = (rankIndex + fileIndex) % 2 === 1;
+
+                const square = $('<div>')
+                    .addClass('square')
+                    .addClass(isLight ? 'light' : 'dark')
+                    .attr('data-square', squareName);
+
+                // Koordinaten: Links (col=0) für Ranks, Unten (row=7) für Files
+                if (col === 0) {
+                    square.append(`<span class="coord rank">${rankNum}</span>`);
+                }
+                if (row === 7) {
+                    square.append(`<span class="coord file">${fileChar}</span>`);
+                }
+
+                // Figur rendern
+                if (piece) {
+                    const pieceCode = piece.color + piece.type.toUpperCase();
+                    const pieceDiv = $('<div>')
+                        .addClass('piece')
+                        .css('background-image', `url(${pieceImages[pieceCode]})`);
+                    square.append(pieceDiv);
+                }
+
+                boardEl.append(square);
+            }
+        }
+    }
+
+    // Click & Drag Event-Handler - NUR EINMAL beim Start aufrufen!
+    let eventsSetup = false;
+    function setupSquareEvents() {
+        if (eventsSetup) return; // Verhindere mehrfaches Registrieren
+        eventsSetup = true;
+
+        let mouseDownSquare = null;
+        let mouseDownTime = 0;
+        let hasMoved = false;
+
+        // Event-Delegation: Auf #chessboard lauschen, für squares UND pieces
+        $('#chessboard').on('mousedown', '.square, .piece', function(e) {
+            if (e.button !== 0) return;
+
+            // Finde das Square (kann .square oder .piece sein)
+            let squareEl = $(this).hasClass('square') ? $(this) : $(this).closest('.square');
+            mouseDownSquare = squareEl.attr('data-square');
+            mouseDownTime = Date.now();
+            hasMoved = false;
+
+            console.log('Mousedown on:', mouseDownSquare);
+        });
+
+        $(document).on('mousemove', function(e) {
+            if (mouseDownSquare && !hasMoved) {
+                // Wenn Maus bewegt wird während mousedown, starte Drag
+                const piece = game.get(mouseDownSquare);
+                if (piece && piece.color === playerColor) {
+                    hasMoved = true;
+                    handleDragStart(mouseDownSquare, e);
+                }
+            }
+            if (draggingPiece) {
+                hasMoved = true;
+                updateDragGhost(e);
+            }
+        });
+
+        $(document).on('mouseup', function(e) {
+            const clickDuration = Date.now() - mouseDownTime;
+
+            if (draggingPiece) {
+                handleDragEnd();
+            } else if (mouseDownSquare && !hasMoved && clickDuration < 300) {
+                // War ein Click, kein Drag
+                console.log('Detected click on:', mouseDownSquare);
+                handleSquareClick(mouseDownSquare);
+            }
+
+            mouseDownSquare = null;
+            hasMoved = false;
+        });
+
+        $('#chessboard').on('mouseenter', '.square', function() {
+            if (draggingPiece) {
+                $(this).addClass('highlight-hover');
+            }
+        });
+
+        $('#chessboard').on('mouseleave', '.square', function() {
+            $(this).removeClass('highlight-hover');
+        });
+    }
+
+    // Click-to-Move Handler
+    function handleSquareClick(square) {
+        console.log('Click on:', square);
+
+        // Keine Züge im History-Modus
+        if (isViewingHistory) {
+            showCoachMessage('📖 History-Modus', 'Du schaust dir gerade alte Züge an. Nutze ← → oder klicke auf "Nächstes Puzzle" um fortzufahren.');
+            return;
+        }
+
+        if (selectedSquare === null) {
+            // Keine Figur ausgewählt -> Versuche Figur auszuwählen
+            const piece = game.get(square);
+            if (piece && piece.color === playerColor) {
+                selectedSquare = square;
+                showPossibleMoves(square);
+            }
+        } else {
+            // Figur bereits ausgewählt -> Versuche Zug
+            if (square === selectedSquare) {
+                // Auf gleiche Figur geklickt -> Abwählen
+                selectedSquare = null;
+                removeHighlights();
+            } else {
+                makeMove(selectedSquare, square);
+            }
+        }
+    }
+
+    // Drag Start
+    function handleDragStart(square, event) {
+        // Kein Drag im History-Modus
+        if (isViewingHistory) return;
+
+        const piece = game.get(square);
+        if (!piece || piece.color !== playerColor) return;
+
+        draggingPiece = piece;
+        draggingFrom = square;
+        selectedSquare = null; // Reset click selection
+
+        $(`[data-square="${square}"]`).addClass('dragging');
+        showPossibleMoves(square);
+
+        // Erstelle Ghost-Element
+        const pieceCode = piece.color + piece.type.toUpperCase();
+        const ghostEl = $('<div>')
+            .addClass('dragging-piece-ghost')
+            .css('background-image', `url(${pieceImages[pieceCode]})`)
+            .css('left', event.pageX + 'px')
+            .css('top', event.pageY + 'px');
+        $('body').append(ghostEl);
+    }
+
+    // Update Ghost Position
+    function updateDragGhost(event) {
+        $('.dragging-piece-ghost').css({
+            left: event.pageX + 'px',
+            top: event.pageY + 'px'
+        });
+    }
+
+    // Drag End
+    function handleDragEnd() {
+        $('.square').removeClass('dragging highlight-hover');
+        $('.dragging-piece-ghost').remove();
+
+        const dropSquare = $('.square:hover').attr('data-square');
+        if (dropSquare && dropSquare !== draggingFrom) {
+            makeMove(draggingFrom, dropSquare);
+        } else {
+            removeHighlights();
+        }
+
+        draggingPiece = null;
+        draggingFrom = null;
+    }
+
+    // Zeige mögliche Züge
+    function showPossibleMoves(square) {
+        removeHighlights();
+
+        $(`[data-square="${square}"]`).addClass('highlight-source');
+
+        currentMoves = game.moves({square: square, verbose: true});
+
+        currentMoves.forEach(move => {
+            const targetSquare = $(`[data-square="${move.to}"]`);
+            if (move.captured) {
+                targetSquare.addClass('highlight-capture');
+            } else {
+                targetSquare.addClass('highlight-possible');
+            }
+        });
+    }
+
+    // Entferne alle Highlights
+    function removeHighlights() {
+        $('.square').removeClass('highlight-source highlight-possible highlight-capture highlight-hover');
+        currentMoves = [];
+    }
+
+    // Mache einen Zug
+    function makeMove(from, to) {
+        const move = game.move({from: from, to: to, promotion: 'q'});
+
+        if (move) {
+            selectedSquare = null;
+            removeHighlights();
+            renderBoard();
+
+            // Markiere letzten Zug
+            $(`[data-square="${from}"]`).addClass('highlight-last-move from');
+            $(`[data-square="${to}"]`).addClass('highlight-last-move to');
+            lastMove = {from: from, to: to};
+
+            console.log('Move made:', move);
+
+            // WICHTIG: History wird NACH checkMove() gespeichert
+            // checkMove() wird entscheiden, ob der Zug korrekt ist
+            // Nur korrekte Züge werden zur History hinzugefügt
+
+            // Prüfe Puzzle-Lösung
+            if (currentPuzzle) {
+                checkMove(from, to, move);
+            } else {
+                // Kein Puzzle-Modus - speichere in History
+                moveHistory.push({
+                    move: move,
+                    fen: game.fen()
+                });
+                historyIndex = -1;
+            }
+        } else {
+            // Ungültiger Zug - Check ob andere eigene Figur
+            const clickedPiece = game.get(to);
+            if (clickedPiece && clickedPiece.color === playerColor) {
+                selectedSquare = to;
+                showPossibleMoves(to);
+            } else {
+                selectedSquare = null;
+                removeHighlights();
+            }
+        }
+    }
+
+    // Update Evaluation Bar
+    function updateEvaluationBar(score) {
+        // Score von -10 bis +10 auf 0-100% umrechnen
+        // Positive Score = Weiß vorne, Negative = Schwarz vorne
+        var percentage = 50;
+
+        if (score >= 10) {
+            percentage = 100;
+        } else if (score <= -10) {
+            percentage = 0;
+        } else {
+            percentage = 50 + (score * 5);
+        }
+
+        $('#evalBarWhite').css('height', percentage + '%');
+
+        // Score Text formatieren und positionieren
+        var scoreText = '';
+        if (Math.abs(score) >= 100) {
+            // Matt-Anzeige
+            var mateIn = Math.floor(Math.abs(score) / 100);
+            scoreText = (score > 0 ? 'M' : '-M') + mateIn;
+        } else if (Math.abs(score) < 0.1) {
+            scoreText = '0.0';
+        } else {
+            scoreText = score.toFixed(1);
+        }
+
+        $('#evalScore').text(scoreText);
+
+        // Positioniere Score an der Grenze (100% - percentage, da von unten gemessen)
+        var topPosition = (100 - percentage) + '%';
+        $('#evalScore').css('top', topPosition);
+
+        currentEvaluation = score;
+    }
+
+    // Note: removeHighlights is now defined earlier with the new board system
+
+    // Markiere den letzten Zug
+    // Highlight last move (kept for compatibility)
+    function highlightLastMove(from, to) {
+        $('.square').removeClass('highlight-last-move from to');
+        if (from) $(`[data-square="${from}"]`).addClass('highlight-last-move from');
+        if (to) $(`[data-square="${to}"]`).addClass('highlight-last-move to');
+    }
+
+    // Lade ein neues Puzzle vom Backend
+    function loadPuzzle() {
+        console.log('=== LADE NEUES PUZZLE ===');
+
+        // Baue URL mit optionalem pattern-Parameter
+        var url = '/api/get-puzzle';
+        if (patternFilter) {
+            url += '?pattern=' + encodeURIComponent(patternFilter);
+            console.log('Loading puzzle with pattern filter:', patternFilter);
+        }
+
+        $.ajax({
+            url: url,
+            method: 'GET',
+            success: function(response) {
+                console.log('Backend Response:', response);
+                if (response.success) {
+                    currentPuzzle = response.puzzle;
+                    currentSolutionMoves = currentPuzzle.moves;
+                    currentMoveIndex = 0;
+
+                    console.log('Puzzle ID:', currentPuzzle.id);
+                    console.log('Puzzle FEN:', currentPuzzle.fen);
+                    console.log('Puzzle geladen:', currentPuzzle);
+                    console.log('Moves:', currentSolutionMoves);
+
+                    // Reset History
+                    moveHistory = [];
+                    historyIndex = -1;
+                    isViewingHistory = false;
+
+                    // Lade Position
+                    game.load(currentPuzzle.fen);
+
+                    // WICHTIG: Bei Lichess ist der ERSTE Zug in moves der Gegner-Zug!
+                    // Diesen Zug müssen wir abspielen und markieren
+                    if (currentSolutionMoves.length > 0) {
+                        var opponentInitialMove = currentSolutionMoves[0];
+                        console.log('Playing opponent initial move:', opponentInitialMove);
+
+                        // Parse UCI move
+                        var from = opponentInitialMove.substring(0, 2);
+                        var to = opponentInitialMove.substring(2, 4);
+                        var promotion = opponentInitialMove.length > 4 ? opponentInitialMove.substring(4) : undefined;
+
+                        // Spiele den Zug
+                        var result = game.move({
+                            from: from,
+                            to: to,
+                            promotion: promotion
+                        });
+
+                        if (result) {
+                            console.log('Opponent move played successfully');
+                            // Erhöhe moveIndex, damit wir ab dem nächsten Zug (UNSER Zug) prüfen
+                            currentMoveIndex = 1;
+
+                            // Speichere den Zug für Markierung
+                            lastMove = { from: from, to: to };
+
+                            // Speichere in History (Startposition)
+                            moveHistory.push({
+                                move: result,
+                                fen: game.fen()
+                            });
+                        } else {
+                            console.error('Failed to play opponent initial move');
+                            lastMove = null;
+                        }
+                    }
+
+                    // Setze Spielerfarbe (global) und Board-Orientierung
+                    // JETZT ist game.turn() unsere Farbe (nach dem Gegner-Zug)
+                    playerColor = game.turn(); // 'w' oder 'b'
+                    console.log('Player color:', playerColor);
+
+                    // Setze Board-Orientierung basierend auf Spielerfarbe
+                    boardOrientation = playerColor === 'w' ? 'white' : 'black';
+                    console.log('Board orientation:', boardOrientation);
+
+                    // Rendere das Board
+                    renderBoard();
+                    console.log('Board rendered');
+
+                    // Markiere den letzten Zug des Gegners
+                    if (lastMove) {
+                        $(`[data-square="${lastMove.from}"]`).addClass('highlight-last-move from');
+                        $(`[data-square="${lastMove.to}"]`).addClass('highlight-last-move to');
+                    }
+
+                    // Update UI
+                    updatePuzzleUI();
+
+                    // Reset Feedback
+                    $('#feedbackSuccess').hide();
+                    $('#feedbackError').hide();
+
+                    // Spielerfarbe wurde bereits oben gesetzt
+                    var playerColorText = playerColor === 'w' ? 'Weiß' : 'Schwarz';
+
+                    // Generiere hilfreichen Coaching-Text basierend auf Themes
+                    var coachingText = 'Überlege dir, welche taktischen Motive in der Stellung vorhanden sind.';
+
+                    if (currentPuzzle.themes.includes('fork')) {
+                        coachingText = 'Achte darauf, ob du mehrere Figuren gleichzeitig angreifen kannst!';
+                    } else if (currentPuzzle.themes.includes('pin')) {
+                        coachingText = 'Prüfe, ob du eine wichtige Figur gegen den König fesseln kannst.';
+                    } else if (currentPuzzle.themes.includes('mate') || currentPuzzle.themes.includes('mateIn1')) {
+                        coachingText = 'Es gibt ein Matt! Finde den entscheidenden Zug.';
+                    } else if (currentPuzzle.themes.includes('hangingPiece')) {
+                        coachingText = 'Schau nach ungedeckten Figuren, die du gewinnen kannst.';
+                    } else if (currentPuzzle.themes.includes('skewer')) {
+                        coachingText = 'Suche nach einer Möglichkeit, zwei Figuren auf einer Linie anzugreifen.';
+                    } else if (currentPuzzle.themes.includes('discoveredAttack')) {
+                        coachingText = 'Kannst du durch Wegziehen einer Figur einen versteckten Angriff aufdecken?';
+                    }
+
+                    showCoachMessage('Taktikaufgabe', `Finde den besten Zug für ${playerColorText}! ${coachingText}`);
+
+                    console.log('Lösung:', currentSolutionMoves);
+                } else {
+                    showFeedback(response.message || 'Fehler beim Laden des Puzzles', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Fehler beim Laden des Puzzles:', error);
+                showFeedback('Fehler beim Laden des Puzzles. Bitte versuche es erneut.', 'error');
+            }
+        });
+    }
+
+    // Update Puzzle UI (Difficulty Badge, Themes)
+    function updatePuzzleUI() {
+        if (!currentPuzzle) return;
+
+        // Update Difficulty Badge
+        var rating = currentPuzzle.rating;
+        var difficultyClass = 'difficulty-medium';
+        var difficultyText = '⭐⭐ Mittel';
+
+        if (rating < 1400) {
+            difficultyClass = 'difficulty-easy';
+            difficultyText = '⭐ Leicht';
+        } else if (rating > 1700) {
+            difficultyClass = 'difficulty-hard';
+            difficultyText = '⭐⭐⭐ Schwer';
+        }
+
+        $('.difficulty-badge').removeClass('difficulty-easy difficulty-medium difficulty-hard')
+            .addClass(difficultyClass)
+            .text(difficultyText);
+
+        // Update Themes
+        $('.puzzle-themes').empty();
+        if (currentPuzzle.themes) {
+            // Themes können als String (space-separated) oder Array kommen
+            var themesArray = Array.isArray(currentPuzzle.themes)
+                ? currentPuzzle.themes
+                : currentPuzzle.themes.split(' ');
+
+            // Deutsche Übersetzungen für alle Lichess-Themes
+            var germanThemes = {
+                'mate': 'Matt',
+                'mateIn1': 'Matt in 1',
+                'mateIn2': 'Matt in 2',
+                'mateIn3': 'Matt in 3',
+                'mateIn4': 'Matt in 4',
+                'mateIn5': 'Matt in 5',
+                'fork': 'Gabel',
+                'pin': 'Fesselung',
+                'skewer': 'Spieß',
+                'discoveredAttack': 'Abzugsangriff',
+                'doubleCheck': 'Doppelschach',
+                'hangingPiece': 'Hängende Figur',
+                'trappedPiece': 'Gefangene Figur',
+                'exposedKing': 'Exponierter König',
+                'backRankMate': 'Grundreihenmatt',
+                'smotheredMate': 'Ersticktes Matt',
+                'attraction': 'Hinlenkung',
+                'deflection': 'Ablenkung',
+                'sacrifice': 'Opfer',
+                'clearance': 'Räumung',
+                'interference': 'Verstopfung',
+                'intermezzo': 'Zwischenzug',
+                'quietMove': 'Ruhiger Zug',
+                'defensiveMove': 'Verteidigung',
+                'castling': 'Rochade',
+                'enPassant': 'En Passant',
+                'promotion': 'Umwandlung',
+                'underPromotion': 'Unterverwandlung',
+                'xRayAttack': 'Röntgenangriff',
+                'zugzwang': 'Zugzwang',
+                'kingsideAttack': 'Königsflügel-Angriff',
+                'queensideAttack': 'Damenflügel-Angriff',
+                'advantage': 'Vorteil',
+                'crushing': 'Vernichtend',
+                'equality': 'Ausgeglichen',
+                'middlegame': 'Mittelspiel',
+                'endgame': 'Endspiel',
+                'opening': 'Eröffnung',
+                'rookEndgame': 'Turmendspiel',
+                'bishopEndgame': 'Läuferendspiel',
+                'pawnEndgame': 'Bauernendspiel',
+                'knightEndgame': 'Springerendspiel',
+                'queenEndgame': 'Damenendspiel',
+                'queenRookEndgame': 'Dame-Turm-Endspiel',
+                'short': 'Kurz',
+                'long': 'Lang',
+                'veryLong': 'Sehr lang',
+                'oneMove': '1 Zug',
+                'master': 'Meisterpartie',
+                'masterVsMaster': 'Meister vs Meister',
+                'superGM': 'Super-GM'
+            };
+
+            // Nur die wichtigsten Themes anzeigen (max 4), ohne generische wie "oneMove", "short", etc.
+            var skipThemes = ['oneMove', 'short', 'long', 'veryLong', 'master', 'masterVsMaster', 'superGM'];
+            var displayedCount = 0;
+
+            themesArray.forEach(function(theme) {
+                if (displayedCount >= 4) return; // Max 4 Themes
+                if (skipThemes.includes(theme)) return; // Überspringe generische Themes
+
+                var displayTheme = germanThemes[theme] || theme;
+                $('.puzzle-themes').append(`<span class="theme-badge">${displayTheme}</span> `);
+                displayedCount++;
+            });
+        }
+    }
+
+    // Click-to-Move: Wenn auf ein Feld geklickt wird
+    function onSquareClick(square) {
+        console.log('onSquareClick called for:', square);
+        console.log('selectedSquare is currently:', selectedSquare);
+
+        // Fall 1: Es ist noch keine Figur ausgewählt
+        if (selectedSquare === null) {
+            var piece = game.get(square);
+            console.log('Piece on square:', piece);
+
+            // Nur wenn auf dem Feld eine Figur steht
+            if (!piece) {
+                console.log('No piece on this square');
+                return;
+            }
+
+            // Nur eigene Figuren auswählen (dynamische Farbe)
+            if (piece.color !== playerColor) {
+                console.log('Wrong color - not player color');
+                return;
+            }
+
+            // Figur auswählen
+            console.log('Selecting piece on', square);
+            selectedSquare = square;
+            showPossibleMoves(square);
+            return;
+        }
+
+        // Fall 2: Eine Figur ist bereits ausgewählt
+        // Versuch den Zug zu machen
+        var move = game.move({
+            from: selectedSquare,
+            to: square,
+            promotion: 'q'
+        });
+
+        // Ungültiger Zug?
+        if (move === null) {
+            // Wenn auf ein anderes eigenes Feld geklickt wurde, wähle diese Figur aus
+            var clickedPiece = game.get(square);
+            if (clickedPiece && clickedPiece.color === playerColor) {
+                selectedSquare = square;
+                showPossibleMoves(square);
+            } else {
+                // Sonst: Auswahl aufheben
+                selectedSquare = null;
+                removeHighlights();
+            }
+            return;
+        }
+
+        // Zug war gültig
+        selectedSquare = null;
+        removeHighlights();
+
+        // Verwende ChessboardJS move() für saubere Animation
+        var moveConfig = {};
+        moveConfig[move.from] = move.to;
+        board.move(moveConfig);
+
+        lastMove = {from: move.from, to: move.to};
+        highlightLastMove(move.from, move.to);
+        console.log('Zug gemacht via click:', move);
+
+        // Check ob der Zug korrekt ist (für Puzzles)
+        checkMove(move.from, move.to);
+    }
+
+    $(document).ready(function() {
+        console.log('Initialisiere eigenes Schachbrett-System...');
+
+        // Rendere initiales leeres Board
+        renderBoard();
+
+        // Setze Event-Listener (nur einmal!)
+        setupSquareEvents();
+
+        // Setze initiale Evaluation
+        updateEvaluationBar(0.0);
+
+        // Lade das erste Puzzle
+        loadPuzzle();
+
+        // Flip Board Button
+        $('#flipBoardBtn').on('click', function() {
+            boardOrientation = boardOrientation === 'white' ? 'black' : 'white';
+            renderBoard();
+
+            // Highlights wieder anwenden falls vorhanden
+            if (lastMove) {
+                $(`[data-square="${lastMove.from}"]`).addClass('highlight-last-move from');
+                $(`[data-square="${lastMove.to}"]`).addClass('highlight-last-move to');
+            }
+            if (selectedSquare) {
+                showPossibleMoves(selectedSquare);
+            }
+        });
+
+        // Button Event Handlers
+        $('#btnHint').on('click', function() {
+            if (!currentPuzzle) {
+                showFeedback('Bitte lade zuerst ein Puzzle', 'error');
+                return;
+            }
+
+            // Generiere einen Tipp basierend auf dem Theme
+            var hintText = 'Überlege dir, welcher Zug am stärksten ist.';
+
+            if (currentPuzzle.themes.includes('fork')) {
+                hintText = 'Schau dir an, ob du mit einem Zug zwei gegnerische Figuren gleichzeitig angreifen kannst (Gabel).';
+            } else if (currentPuzzle.themes.includes('pin')) {
+                hintText = 'Gibt es eine Möglichkeit, eine wichtige Figur zu fesseln?';
+            } else if (currentPuzzle.themes.includes('mate') || currentPuzzle.themes.includes('mateIn1')) {
+                hintText = 'Suche nach einem Matt! Der König ist in Gefahr.';
+            } else if (currentPuzzle.themes.includes('hangingPiece')) {
+                hintText = 'Eine gegnerische Figur ist ungedeckt. Kannst du sie gewinnen?';
+            }
+
+            showCoachMessage('💡 Tipp', hintText);
+        });
+
+        $('#btnSolution').on('click', function() {
+            if (!currentPuzzle || currentSolutionMoves.length === 0) {
+                showFeedback('Bitte lade zuerst ein Puzzle', 'error');
+                return;
+            }
+
+            // Reset: Lade das Puzzle neu, um von vorne zu starten
+            game.load(currentPuzzle.fen);
+            moveHistory = [];
+            historyIndex = -1;
+            isViewingHistory = false;
+
+            // Spiele den initialen Gegner-Zug
+            if (currentSolutionMoves.length > 0) {
+                var opponentInitialMove = currentSolutionMoves[0];
+                var from = opponentInitialMove.substring(0, 2);
+                var to = opponentInitialMove.substring(2, 4);
+                var promotion = opponentInitialMove.length > 4 ? opponentInitialMove.substring(4) : undefined;
+
+                var result = game.move({
+                    from: from,
+                    to: to,
+                    promotion: promotion
+                });
+
+                if (result) {
+                    moveHistory.push({
+                        move: result,
+                        fen: game.fen()
+                    });
+                }
+            }
+
+            // Rendere Board
+            renderBoard();
+            removeHighlights();
+
+            // Markiere als nicht gelöst
+            submitPuzzleResult(false);
+
+            showCoachMessage('🔍 Lösung', 'Die Lösung wird Schritt für Schritt angezeigt...');
+            showFeedback('Lösung wird abgespielt...', 'error');
+
+            // Spiele alle verbleibenden Züge der Lösung ab (mit Animation)
+            function playNextSolutionMove(moveIdx) {
+                if (moveIdx >= currentSolutionMoves.length) {
+                    // Alle Züge abgespielt
+                    showCoachMessage('Puzzle beendet', 'Das war die vollständige Lösung. Nutze die Pfeiltasten ← → um durch die Züge zu navigieren.');
+                    return;
+                }
+
+                var move = currentSolutionMoves[moveIdx];
+                var from = move.substring(0, 2);
+                var to = move.substring(2, 4);
+                var promotion = move.length > 4 ? move.substring(4) : undefined;
+
+                // Animiere den Zug BEVOR er gemacht wird
+                animateMove(from, to, function() {
+                    // Mache den Zug nach der Animation
+                    var result = game.move({
+                        from: from,
+                        to: to,
+                        promotion: promotion
+                    });
+
+                    if (result) {
+                        // Speichere in History
+                        moveHistory.push({
+                            move: result,
+                            fen: game.fen()
+                        });
+
+                        // Update Board
+                        renderBoard();
+                        removeHighlights();
+                        $(`[data-square="${from}"]`).addClass('highlight-last-move from');
+                        $(`[data-square="${to}"]`).addClass('highlight-last-move to');
+
+                        // Nächsten Zug nach 0.7 Sekunden abspielen (Animation braucht 0.5s)
+                        setTimeout(function() {
+                            playNextSolutionMove(moveIdx + 1);
+                        }, 700);
+                    } else {
+                        console.error('Failed to play solution move:', move);
+                        playNextSolutionMove(moveIdx + 1); // Überspringe fehlerhaften Zug
+                    }
+                });
+            }
+
+            // Starte ab Move-Index 1 (da 0 der initiale Gegner-Zug war)
+            playNextSolutionMove(1);
+        });
+
+        $('#btnNext').on('click', function() {
+            // Lade nächstes Puzzle
+            loadPuzzle();
+        });
+
+        // Pfeil-Tasten Navigation für History
+        $(document).on('keydown', function(e) {
+            // Nur wenn wir eine History haben
+            if (moveHistory.length === 0) return;
+
+            if (e.key === 'ArrowLeft') {
+                // Zurück
+                e.preventDefault();
+                navigateHistory(-1);
+            } else if (e.key === 'ArrowRight') {
+                // Vorwärts
+                e.preventDefault();
+                navigateHistory(1);
+            }
+        });
+    });
+
+    // Navigation durch die Move-History
+    function navigateHistory(direction) {
+        if (moveHistory.length === 0) return;
+
+        // Wenn wir aktuell bei -1 sind (aktuelle Position) und zurück gehen
+        // dann gehen wir zum letzten Element in der History
+        if (historyIndex === -1 && direction < 0) {
+            historyIndex = moveHistory.length - 1;
+        } else {
+            // Normaler Fall: Bewege Index
+            var newIndex = historyIndex + direction;
+
+            // Grenzen prüfen
+            if (newIndex < 0) {
+                newIndex = 0; // Erste Position in History
+            } else if (newIndex >= moveHistory.length) {
+                newIndex = -1; // Aktuelle Position (Ende)
+            }
+
+            if (newIndex === historyIndex) return; // Keine Änderung
+
+            historyIndex = newIndex;
+        }
+
+        isViewingHistory = (historyIndex !== -1);
+
+        console.log('Navigate to history index:', historyIndex);
+
+        if (historyIndex === -1) {
+            // Aktuelle Position - zeige das aktuelle game
+            renderBoard();
+
+            // Zeige letzten Zug
+            if (moveHistory.length > 0) {
+                var lastMove = moveHistory[moveHistory.length - 1].move;
+                removeHighlights();
+                $(`[data-square="${lastMove.from}"]`).addClass('highlight-last-move from');
+                $(`[data-square="${lastMove.to}"]`).addClass('highlight-last-move to');
+            }
+
+            // Zeige normale Nachricht wenn zurück zur aktuellen Position
+            showCoachMessage('Taktikaufgabe', 'Du bist zurück bei der aktuellen Position.');
+        } else {
+            // Historische Position anzeigen
+            var historyEntry = moveHistory[historyIndex];
+
+            // Lade diese FEN-Position temporär
+            var currentFen = game.fen(); // Speichere aktuelle Position
+            game.load(historyEntry.fen);
+            renderBoard();
+
+            // Markiere den Zug dieser Position
+            removeHighlights();
+            $(`[data-square="${historyEntry.move.from}"]`).addClass('highlight-last-move from');
+            $(`[data-square="${historyEntry.move.to}"]`).addClass('highlight-last-move to');
+
+            // Zeige Hinweis
+            showCoachMessage('📖 History-Modus', `Zug ${historyIndex + 1} von ${moveHistory.length}. Nutze ← → um zu navigieren.`);
+        }
+    }
+
+    // Zeige Coach Nachricht
+    function showCoachMessage(title, message) {
+        $('#coachMessage h4').text(title);
+        $('#coachMessage p').text(message);
+    }
+
+    // Zeige Feedback
+    function showFeedback(message, type) {
+        var feedbackEl = type === 'success' ? $('#feedbackSuccess') : $('#feedbackError');
+        var otherEl = type === 'success' ? $('#feedbackError') : $('#feedbackSuccess');
+
+        // Verstecke das andere Feedback
+        otherEl.hide();
+
+        // Zeige das neue Feedback
+        feedbackEl.text(message).fadeIn();
+
+        // Nach 5 Sekunden wieder ausblenden (verlängert von 3 auf 5 Sekunden)
+        setTimeout(function() {
+            feedbackEl.fadeOut();
+        }, 5000);
+    }
+
+    // Highlight Lösung auf dem Brett
+    function highlightSolution() {
+        // Beispiel: Markiere f3 und e5
+        removeHighlights();
+        $('#chessboard .square-f3').addClass('highlight-source');
+        $('#chessboard .square-e5').addClass('highlight-possible');
+    }
+
+    // Check ob Zug korrekt ist
+    function checkMove(from, to, moveObj) {
+        if (!currentPuzzle || currentSolutionMoves.length === 0) {
+            console.log('Kein Puzzle geladen');
+            return false;
+        }
+
+        // Konvertiere den gespielten Zug zu UCI
+        var playedMove = from + to;
+
+        // Hole den erwarteten Zug
+        var expectedMove = currentSolutionMoves[currentMoveIndex];
+
+        console.log('Gespielter Zug:', playedMove);
+        console.log('Erwarteter Zug:', expectedMove);
+        console.log('Move Index:', currentMoveIndex);
+
+        // Vergleiche (berücksichtige auch Promotion)
+        var isCorrect = playedMove === expectedMove.substring(0, 4);
+
+        if (isCorrect) {
+            // NUR bei korrektem Zug: Speichere in History
+            moveHistory.push({
+                move: moveObj,
+                fen: game.fen()
+            });
+            historyIndex = -1;
+
+            currentMoveIndex++;
+
+            // Ist das Puzzle gelöst?
+            if (currentMoveIndex >= currentSolutionMoves.length) {
+                // Puzzle komplett gelöst!
+                showFeedback('✓ Perfekt! Puzzle gelöst!', 'success');
+                showCoachMessage('Ausgezeichnet!', 'Du hast das Puzzle erfolgreich gelöst! Nächstes Puzzle wird geladen...');
+
+                // Sende Erfolg an Backend
+                submitPuzzleResult(true);
+
+                // Lade automatisch das nächste Puzzle nach 2 Sekunden
+                setTimeout(function() {
+                    loadPuzzle();
+                }, 2000);
+
+                return true;
+            } else {
+                // Zug war richtig, aber es gibt noch weitere Züge
+                showFeedback('✓ Richtig! Weiter so!', 'success');
+
+                // Der nächste Zug in der Lösung ist der Gegner-Zug - spiele ihn automatisch
+                setTimeout(function() {
+                    var opponentMove = currentSolutionMoves[currentMoveIndex];
+                    console.log('Auto-playing opponent move:', opponentMove);
+
+                    // Parse UCI move (z.B. "e7e5" oder "e7e8q" mit Promotion)
+                    var from = opponentMove.substring(0, 2);
+                    var to = opponentMove.substring(2, 4);
+                    var promotion = opponentMove.length > 4 ? opponentMove.substring(4) : undefined;
+
+                    // Mache den Zug im Game
+                    var moveObj = {
+                        from: from,
+                        to: to,
+                        promotion: promotion
+                    };
+
+                    var result = game.move(moveObj);
+
+                    if (result) {
+                        currentMoveIndex++;
+
+                        // Speichere in History
+                        moveHistory.push({
+                            move: result,
+                            fen: game.fen()
+                        });
+
+                        // Update Board
+                        renderBoard();
+                        $(`[data-square="${from}"]`).addClass('highlight-last-move from');
+                        $(`[data-square="${to}"]`).addClass('highlight-last-move to');
+
+                        // Prüfe ob das Puzzle jetzt gelöst ist
+                        if (currentMoveIndex >= currentSolutionMoves.length) {
+                            showFeedback('✓ Perfekt! Puzzle gelöst!', 'success');
+                            showCoachMessage('Ausgezeichnet!', 'Du hast das Puzzle erfolgreich gelöst! Nächstes Puzzle wird geladen...');
+                            submitPuzzleResult(true);
+                            setTimeout(function() {
+                                loadPuzzle();
+                            }, 2000);
+                        } else {
+                            // Gib Feedback und fordere nächsten Zug an
+                            showCoachMessage('Gegner hat gezogen', 'Jetzt bist du wieder am Zug. Finde die beste Fortsetzung!');
+                        }
+                    } else {
+                        console.error('Failed to play opponent move:', opponentMove);
+                    }
+                }, 800); // 800ms Verzögerung
+
+                return true;
+            }
+        } else {
+            // Falscher Zug
+            showFeedback('❌ Falsch! Versuch es nochmal!', 'error');
+            showCoachMessage('Hmm...', 'Das ist nicht die optimale Lösung. Überlege nochmal, welcher Zug am stärksten ist.');
+
+            // Zug zurücknehmen
+            game.undo();
+
+            // Board neu rendern (reset zum Ausgangszustand)
+            renderBoard();
+
+            // Entferne alle Highlights
+            removeHighlights();
+            selectedSquare = null;
+
+            return false;
+        }
+    }
+
+    // Sende Puzzle-Ergebnis an Backend
+    function submitPuzzleResult(solved) {
+        if (!currentPuzzle) return;
+
+        $.ajax({
+            url: '/api/submit-puzzle',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                puzzle_id: currentPuzzle.id,
+                solved: solved,
+                error_type: currentPuzzle.error_type
+            }),
+            success: function(response) {
+                console.log('Puzzle-Ergebnis gespeichert:', response);
+            },
+            error: function(xhr, status, error) {
+                console.error('Fehler beim Speichern:', error);
+            }
+        });
+    }
+</script>
 {% endblock %}

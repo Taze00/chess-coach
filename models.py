@@ -57,6 +57,8 @@ class Error(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     move_number = db.Column(db.Integer)  # Which move number
     error_type = db.Column(db.String(50), nullable=False)  # 'blunder', 'mistake', 'inaccuracy'
+    tactical_pattern = db.Column(db.String(50))  # 'fork', 'pin', 'hangingPiece', 'mate', etc. (deprecated - use tactical_patterns)
+    tactical_patterns = db.Column(db.Text)  # JSON array of patterns: ["fork", "mate", "advantage"]
     position = db.Column(db.String(100), nullable=False)  # FEN string
     move_played = db.Column(db.String(10))
     best_move = db.Column(db.String(10))
@@ -66,6 +68,21 @@ class Error(db.Model):
     centipawn_loss = db.Column(db.Integer)  # CP lost by this move
     severity = db.Column(db.Integer)  # 1-10 (deprecated, use centipawn_loss)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def get_tactical_patterns_list(self):
+        """Return tactical patterns as a Python list."""
+        if not self.tactical_patterns:
+            return []
+        import json
+        try:
+            return json.loads(self.tactical_patterns)
+        except:
+            return []
+
+    def get_primary_pattern(self):
+        """Return the most important (first) tactical pattern."""
+        patterns = self.get_tactical_patterns_list()
+        return patterns[0] if patterns else self.tactical_pattern
 
     def __repr__(self):
         return f'<Error {self.error_type} in Game {self.game_id}>'
@@ -101,3 +118,31 @@ class ErrorStats(db.Model):
 
     def __repr__(self):
         return f'<ErrorStats {self.error_type} - Week {self.week}>'
+
+
+class Puzzle(db.Model):
+    """Lichess puzzle for training."""
+    __tablename__ = 'puzzles'
+
+    id = db.Column(db.Integer, primary_key=True)
+    puzzle_id = db.Column(db.String(50), unique=True, nullable=False)  # Lichess puzzle ID
+    fen = db.Column(db.String(100), nullable=False)  # Starting position
+    moves = db.Column(db.String(200), nullable=False)  # Solution moves (UCI format)
+    rating = db.Column(db.Integer)  # Puzzle difficulty rating
+    rating_deviation = db.Column(db.Integer)
+    popularity = db.Column(db.Integer)
+    nb_plays = db.Column(db.Integer)
+    themes = db.Column(db.String(200))  # Comma-separated themes (e.g., "fork,pin")
+    game_url = db.Column(db.String(200))
+    opening_tags = db.Column(db.String(200))  # Opening information
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Puzzle {self.puzzle_id} - Rating {self.rating}>'
+
+    def get_themes_list(self):
+        """Return themes as a list."""
+        if not self.themes:
+            return []
+        # Lichess uses spaces to separate themes
+        return [t.strip() for t in self.themes.split(' ') if t.strip()]

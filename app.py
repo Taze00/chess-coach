@@ -4,10 +4,12 @@ from dotenv import load_dotenv
 import os
 import time
 
-from models import db, User, Game
+from models import db, User, Game, Puzzle, PuzzleProgress, Error
 from auth import auth, bcrypt
 from chess_api import ChessComAPI
 from stockfish_analyzer import StockfishAnalyzer
+from puzzle_service import PuzzleService
+from datetime import datetime
 
 # Global progress tracker
 analysis_progress = {}
@@ -64,10 +66,45 @@ def dashboard():
     games_count = Game.query.filter_by(user_id=current_user.id).count()
     errors_count = Error.query.filter_by(user_id=current_user.id).count()
 
+    # Get tactical pattern distribution
+    pattern_stats = {}
+    errors = Error.query.filter_by(user_id=current_user.id).all()
+
+    for error in errors:
+        # Count primary pattern
+        if error.tactical_pattern:
+            pattern_stats[error.tactical_pattern] = pattern_stats.get(error.tactical_pattern, 0) + 1
+
+    # Sort by count (descending)
+    pattern_stats_sorted = sorted(pattern_stats.items(), key=lambda x: -x[1])
+
+    # Get top 10 most common patterns
+    top_patterns = pattern_stats_sorted[:10]
+
+    # German translations for patterns
+    pattern_translations = {
+        'advantage': 'Vorteil',
+        'mate': 'Matt',
+        'fork': 'Gabel',
+        'pin': 'Fesselung',
+        'skewer': 'Spieß',
+        'discoveredAttack': 'Abzugsangriff',
+        'hangingPiece': 'Hängende Figur',
+        'castling': 'Rochade',
+        'sacrifice': 'Opfer',
+        'attackingF2F7': 'Angriff auf f2/f7',
+        'exposedKing': 'Exponierter König',
+        'trappedPiece': 'Gefangene Figur',
+        'backRankMate': 'Grundreihenmatt',
+        'smotheredMate': 'Ersticktes Matt'
+    }
+
     stats = {
         'games_count': games_count,
         'errors_count': errors_count,
-        'puzzles_solved': 0  # Will be populated in Phase 5
+        'puzzles_solved': 0,  # Will be populated in Phase 5
+        'pattern_stats': top_patterns,
+        'pattern_translations': pattern_translations
     }
     return render_template('dashboard.html', stats=stats)
 
@@ -86,9 +123,25 @@ def games():
 def errors():
     """Errors/mistakes overview page."""
     from models import Error
+    from flask import request
+
+    # Get optional pattern filter from query string
+    pattern_filter = request.args.get('pattern')
 
     # Get all errors for current user
-    user_errors = Error.query.filter_by(user_id=current_user.id).order_by(Error.created_at.desc()).all()
+    query = Error.query.filter_by(user_id=current_user.id)
+
+    # Apply pattern filter if specified
+    if pattern_filter:
+        # Filter by tactical_pattern (single pattern) or tactical_patterns (multi-pattern JSON)
+        query = query.filter(
+            db.or_(
+                Error.tactical_pattern == pattern_filter,
+                Error.tactical_patterns.like(f'%{pattern_filter}%')
+            )
+        )
+
+    user_errors = query.order_by(Error.created_at.desc()).all()
 
     # Categorize errors
     categorized = {
@@ -97,7 +150,39 @@ def errors():
         'inaccuracies': [e for e in user_errors if e.error_type == 'inaccuracy']
     }
 
-    return render_template('errors.html', errors=user_errors, categorized=categorized)
+    # German translations for tactical patterns
+    pattern_translations = {
+        'advantage': 'Vorteil',
+        'mate': 'Matt',
+        'mateIn1': 'Matt in 1',
+        'mateIn2': 'Matt in 2',
+        'mateIn3': 'Matt in 3',
+        'fork': 'Gabel',
+        'pin': 'Fesselung',
+        'skewer': 'Spieß',
+        'discoveredAttack': 'Abzugsangriff',
+        'hangingPiece': 'Hängende Figur',
+        'castling': 'Rochade',
+        'sacrifice': 'Opfer',
+        'backRankMate': 'Grundreihenmatt',
+        'smotheredMate': 'Ersticktes Matt',
+        'trappedPiece': 'Gefangene Figur',
+        'exposedKing': 'Exponierter König',
+        'kingsideAttack': 'Königsflügel-Angriff',
+        'queensideAttack': 'Damenflügel-Angriff',
+        'middlegame': 'Mittelspiel',
+        'endgame': 'Endspiel',
+        'opening': 'Eröffnung',
+        'defensiveMove': 'Verteidigung',
+        'quietMove': 'Ruhiger Zug',
+        'crushing': 'Vernichtend'
+    }
+
+    return render_template('errors.html',
+                          errors=user_errors,
+                          categorized=categorized,
+                          pattern_translations=pattern_translations,
+                          pattern_filter=pattern_filter)
 
 
 @app.route('/errors/<int:error_id>')
@@ -137,8 +222,67 @@ def error_detail(error_id):
 @app.route('/training')
 @login_required
 def training():
-    """Training interface page (placeholder)."""
-    return render_template('training.html')
+    """Training interface page with personalized puzzles."""
+    from flask import request
+
+    # Get optional pattern filter from query string
+    pattern_filter = request.args.get('pattern')
+
+    # Get user's most common error type
+    error_stats = db.session.query(
+        Error.error_type,
+        db.func.count(Error.id).label('count')
+    ).filter_by(user_id=current_user.id).group_by(Error.error_type).order_by(
+        db.func.count(Error.id).desc()
+    ).all()
+
+    # Calculate total errors and percentages
+    total_errors = sum([stat[1] for stat in error_stats])
+    error_distribution = {
+        stat[0]: {
+            'count': stat[1],
+            'percentage': round((stat[1] / total_errors * 100), 1) if total_errors > 0 else 0
+        }
+        for stat in error_stats
+    }
+
+    # Get puzzle stats
+    puzzle_stats = PuzzleService.get_puzzle_stats()
+
+    # Get user's solved puzzle count
+    solved_count = PuzzleProgress.query.filter_by(
+        user_id=current_user.id,
+        solved=True
+    ).count()
+
+    # German translations for tactical patterns
+    pattern_translations = {
+        'advantage': 'Vorteil',
+        'mate': 'Matt',
+        'mateIn1': 'Matt in 1',
+        'mateIn2': 'Matt in 2',
+        'mateIn3': 'Matt in 3',
+        'fork': 'Gabel',
+        'pin': 'Fesselung',
+        'skewer': 'Spieß',
+        'discoveredAttack': 'Abzugsangriff',
+        'hangingPiece': 'Hängende Figur',
+        'castling': 'Rochade',
+        'sacrifice': 'Opfer',
+        'backRankMate': 'Grundreihenmatt',
+        'smotheredMate': 'Ersticktes Matt',
+        'trappedPiece': 'Gefangene Figur',
+        'exposedKing': 'Exponierter König'
+    }
+
+    return render_template(
+        'training.html',
+        error_distribution=error_distribution,
+        puzzle_stats=puzzle_stats,
+        solved_count=solved_count,
+        pattern_filter=pattern_filter,
+        pattern_translations=pattern_translations
+    )
 
 
 @app.route('/progress')
@@ -146,6 +290,201 @@ def training():
 def progress():
     """Progress and analytics page (placeholder)."""
     return render_template('progress.html')
+
+
+@app.route('/api/get-puzzle', methods=['GET'])
+@login_required
+def get_puzzle():
+    """
+    Get a personalized puzzle based on user's error patterns.
+
+    Query params:
+        error_type: Optional specific error type to train (blunder/mistake/inaccuracy)
+
+    Returns:
+        JSON with puzzle data
+    """
+    try:
+        # Get tactical pattern from query params or use most common
+        tactical_pattern = request.args.get('pattern')
+
+        if not tactical_pattern:
+            # Find user's most common tactical pattern (excluding generic ones)
+            most_common = db.session.query(
+                Error.tactical_pattern,
+                db.func.count(Error.id).label('count')
+            ).filter(
+                Error.user_id == current_user.id,
+                Error.tactical_pattern.isnot(None),
+                # Exclude very generic patterns to focus on specific tactics
+                ~Error.tactical_pattern.in_(['advantage', 'middlegame', 'endgame', 'opening'])
+            ).group_by(Error.tactical_pattern).order_by(
+                db.func.count(Error.id).desc()
+            ).first()
+
+            if most_common:
+                tactical_pattern = most_common[0]
+                print(f"Most common SPECIFIC pattern: {tactical_pattern} ({most_common[1]} occurrences)")
+            else:
+                # If no specific pattern found, try all patterns including generic ones
+                fallback = db.session.query(
+                    Error.tactical_pattern,
+                    db.func.count(Error.id).label('count')
+                ).filter(
+                    Error.user_id == current_user.id,
+                    Error.tactical_pattern.isnot(None)
+                ).group_by(Error.tactical_pattern).order_by(
+                    db.func.count(Error.id).desc()
+                ).first()
+
+                tactical_pattern = fallback[0] if fallback else 'fork'
+                print(f"Fallback pattern: {tactical_pattern}")
+
+        # Get puzzles that the user hasn't solved yet AND haven't seen in this session
+        solved_puzzle_ids = [p.puzzle_id for p in PuzzleProgress.query.filter_by(
+            user_id=current_user.id,
+            solved=True
+        ).all()]
+
+        # Track seen puzzles in session
+        if 'seen_puzzles' not in session:
+            session['seen_puzzles'] = []
+
+        # Combine solved and recently seen
+        exclude_ids = list(set(solved_puzzle_ids + session['seen_puzzles']))
+
+        print(f"Tactical pattern: {tactical_pattern}")
+        print(f"Solved puzzle IDs: {solved_puzzle_ids}")
+        print(f"Seen in session: {session['seen_puzzles']}")
+        print(f"Total puzzles in DB: {Puzzle.query.count()}")
+
+        # Get a suitable puzzle (excluding solved and seen ones)
+        puzzle = PuzzleService.get_puzzle_for_tactical_pattern(tactical_pattern, user_rating=1500, exclude_ids=exclude_ids)
+
+        print(f"Puzzle for pattern '{tactical_pattern}': {puzzle.puzzle_id if puzzle else 'None'}")
+
+        # If no unsolved puzzles found, clear session history and try again
+        if not puzzle:
+            session['seen_puzzles'] = []
+            puzzle = PuzzleService.get_puzzle_for_tactical_pattern(tactical_pattern, user_rating=1500, exclude_ids=solved_puzzle_ids)
+
+        # Still nothing? Get any random puzzle
+        if not puzzle:
+            puzzle = PuzzleService.get_random_puzzle(user_rating=1500)
+            print(f"Random puzzle: {puzzle.puzzle_id if puzzle else 'None'}")
+
+        if not puzzle:
+            return jsonify({
+                'success': False,
+                'message': 'Keine passenden Puzzles gefunden.'
+            }), 404
+
+        # Add to seen puzzles in session
+        if puzzle.puzzle_id not in session['seen_puzzles']:
+            session['seen_puzzles'].append(puzzle.puzzle_id)
+            # Keep only last 20 seen puzzles
+            if len(session['seen_puzzles']) > 20:
+                session['seen_puzzles'] = session['seen_puzzles'][-20:]
+            session.modified = True
+
+        print(f"Selected puzzle: {puzzle.puzzle_id}")
+
+        # Check if user has already attempted this puzzle
+        progress = PuzzleProgress.query.filter_by(
+            user_id=current_user.id,
+            puzzle_id=puzzle.puzzle_id
+        ).first()
+
+        return jsonify({
+            'success': True,
+            'puzzle': {
+                'id': puzzle.puzzle_id,
+                'fen': puzzle.fen,
+                'moves': puzzle.moves.split(' ') if puzzle.moves else [],  # Lichess uses spaces
+                'rating': puzzle.rating,
+                'themes': puzzle.get_themes_list(),
+                'tactical_pattern': tactical_pattern
+            },
+            'progress': {
+                'attempts': progress.attempts if progress else 0,
+                'solved': progress.solved if progress else False
+            }
+        })
+
+    except Exception as e:
+        print(f"Error getting puzzle: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': 'Fehler beim Laden des Puzzles.'
+        }), 500
+
+
+@app.route('/api/submit-puzzle', methods=['POST'])
+@login_required
+def submit_puzzle():
+    """
+    Submit a puzzle solution attempt.
+
+    JSON body:
+        puzzle_id: Puzzle ID
+        moves: List of moves played by user (UCI format)
+        solved: Boolean indicating if puzzle was solved
+        error_type: Error type being trained
+
+    Returns:
+        JSON with result
+    """
+    try:
+        data = request.get_json()
+        puzzle_id = data.get('puzzle_id')
+        solved = data.get('solved', False)
+        error_type = data.get('error_type')
+
+        if not puzzle_id:
+            return jsonify({
+                'success': False,
+                'message': 'Puzzle ID fehlt.'
+            }), 400
+
+        # Get or create progress record
+        progress = PuzzleProgress.query.filter_by(
+            user_id=current_user.id,
+            puzzle_id=puzzle_id
+        ).first()
+
+        if not progress:
+            progress = PuzzleProgress(
+                user_id=current_user.id,
+                puzzle_id=puzzle_id,
+                error_type=error_type
+            )
+            db.session.add(progress)
+
+        # Update progress
+        progress.attempts += 1
+        progress.last_attempt = datetime.utcnow()
+
+        if solved and not progress.solved:
+            progress.solved = True
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'solved': progress.solved,
+            'attempts': progress.attempts,
+            'message': 'Richtig! Gut gemacht!' if solved else 'Nicht ganz, versuch es nochmal!'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error submitting puzzle: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Fehler beim Speichern.'
+        }), 500
 
 
 @app.route('/api/import-games', methods=['POST'])

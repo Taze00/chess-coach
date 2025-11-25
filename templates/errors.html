@@ -40,6 +40,18 @@
     </div>
 </div>
 
+{% if pattern_filter %}
+<!-- Active Pattern Filter -->
+<div class="row mb-3">
+    <div class="col">
+        <div class="alert" style="background: rgba(255, 107, 53, 0.2); border: 1px solid var(--accent); color: white;">
+            🎯 Gefiltert nach: <strong>{{ pattern_translations.get(pattern_filter, pattern_filter) }}</strong>
+            <a href="{{ url_for('errors') }}" class="btn btn-sm btn-outline-light ms-2" style="float: right;">Filter entfernen</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% if errors %}
 <!-- Filter Section -->
 <div class="row mb-3">
@@ -96,6 +108,19 @@
                             <div class="error-description">
                                 {{ error.explanation }}
                             </div>
+                            {% if error.tactical_patterns %}
+                            <div class="error-patterns mt-2">
+                                {% set patterns = error.get_tactical_patterns_list() %}
+                                {% for pattern in patterns[:3] %}
+                                    <span class="badge bg-secondary-subtle text-secondary me-1">
+                                        {{ pattern_translations.get(pattern, pattern) }}
+                                    </span>
+                                {% endfor %}
+                                {% if patterns|length > 3 %}
+                                    <span class="badge bg-secondary-subtle text-secondary">+{{ patterns|length - 3 }}</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                         </div>
                         <div class="error-arrow">→</div>
                     </a>
