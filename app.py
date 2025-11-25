@@ -56,6 +56,200 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/api/dashboard-stats', methods=['GET'])
+@login_required
+def get_dashboard_stats():
+    """Get comprehensive dashboard statistics for the user."""
+    from datetime import datetime, timedelta
+    from models import Error
+
+    try:
+        # Get current date
+        now = datetime.utcnow()
+        week_ago = now - timedelta(days=7)
+        two_weeks_ago = now - timedelta(days=14)
+
+        # === CURRENT WEEK STATS ===
+        current_week_puzzles = PuzzleProgress.query.filter(
+            PuzzleProgress.user_id == current_user.id,
+            PuzzleProgress.last_attempt >= week_ago
+        ).all()
+
+        current_week_solved = [p for p in current_week_puzzles if p.solved]
+        current_week_count = len(current_week_solved)
+        current_week_success = (len(current_week_solved) / len(current_week_puzzles) * 100) if current_week_puzzles else 0
+
+        # Average time this week
+        current_week_times = [p.solve_time_seconds for p in current_week_solved if p.solve_time_seconds]
+        current_week_avg_time = sum(current_week_times) / len(current_week_times) if current_week_times else 0
+
+        # === LAST WEEK STATS ===
+        last_week_puzzles = PuzzleProgress.query.filter(
+            PuzzleProgress.user_id == current_user.id,
+            PuzzleProgress.last_attempt >= two_weeks_ago,
+            PuzzleProgress.last_attempt < week_ago
+        ).all()
+
+        last_week_solved = [p for p in last_week_puzzles if p.solved]
+        last_week_count = len(last_week_solved)
+        last_week_success = (len(last_week_solved) / len(last_week_puzzles) * 100) if last_week_puzzles else 0
+
+        last_week_times = [p.solve_time_seconds for p in last_week_solved if p.solve_time_seconds]
+        last_week_avg_time = sum(last_week_times) / len(last_week_times) if last_week_times else 0
+
+        # === STREAK CALCULATION ===
+        # Get all solved puzzles ordered by date
+        all_solved = PuzzleProgress.query.filter(
+            PuzzleProgress.user_id == current_user.id,
+            PuzzleProgress.solved == True,
+            PuzzleProgress.last_attempt.isnot(None)
+        ).order_by(PuzzleProgress.last_attempt.desc()).all()
+
+        # Calculate streak
+        streak_days = 0
+        if all_solved:
+            current_date = now.date()
+            checked_dates = set()
+
+            for puzzle in all_solved:
+                puzzle_date = puzzle.last_attempt.date()
+
+                # Skip if we've already counted this date
+                if puzzle_date in checked_dates:
+                    continue
+
+                checked_dates.add(puzzle_date)
+
+                # Check if this date is consecutive
+                expected_date = current_date - timedelta(days=streak_days)
+                if puzzle_date == expected_date:
+                    streak_days += 1
+                elif puzzle_date < expected_date:
+                    # Gap found, streak ends
+                    break
+
+        # === TOP 3 WEAKNESSES ===
+        pattern_stats = {}
+        all_progress = PuzzleProgress.query.filter_by(user_id=current_user.id).all()
+
+        for progress in all_progress:
+            if progress.tactical_pattern:
+                pattern = progress.tactical_pattern
+                if pattern not in pattern_stats:
+                    pattern_stats[pattern] = {'total': 0, 'solved': 0}
+                pattern_stats[pattern]['total'] += 1
+                if progress.solved:
+                    pattern_stats[pattern]['solved'] += 1
+
+        # Calculate success rates
+        weaknesses = []
+        for pattern, stats in pattern_stats.items():
+            if stats['total'] >= 3:  # Only patterns with at least 3 attempts
+                success_rate = (stats['solved'] / stats['total'] * 100)
+                weaknesses.append({
+                    'pattern': pattern,
+                    'success_rate': round(success_rate, 1),
+                    'total': stats['total'],
+                    'solved': stats['solved']
+                })
+
+        # Sort by success rate (ascending) and take top 3
+        weaknesses.sort(key=lambda x: x['success_rate'])
+        top_weaknesses = weaknesses[:3]
+
+        # === RECENT ACTIVITY ===
+        recent_puzzles = PuzzleProgress.query.filter_by(
+            user_id=current_user.id
+        ).order_by(PuzzleProgress.last_attempt.desc()).limit(10).all()
+
+        recent_activity = []
+        for p in recent_puzzles:
+            # Get puzzle details
+            puzzle = Puzzle.query.filter_by(puzzle_id=p.puzzle_id).first()
+
+            # Calculate time ago
+            time_diff = now - p.last_attempt
+            if time_diff.seconds < 60:
+                time_ago = f"vor {time_diff.seconds} Sek"
+            elif time_diff.seconds < 3600:
+                time_ago = f"vor {time_diff.seconds // 60} Min"
+            elif time_diff.days == 0:
+                time_ago = f"vor {time_diff.seconds // 3600} Std"
+            else:
+                time_ago = f"vor {time_diff.days} Tag{'en' if time_diff.days > 1 else ''}"
+
+            recent_activity.append({
+                'solved': p.solved,
+                'pattern': p.tactical_pattern,
+                'rating': p.rating,
+                'time_ago': time_ago,
+                'is_retry': p.attempts > 1
+            })
+
+        # === ACHIEVEMENTS ===
+        total_solved = PuzzleProgress.query.filter_by(
+            user_id=current_user.id,
+            solved=True
+        ).count()
+
+        overall_success_rate = (total_solved / len(all_progress) * 100) if all_progress else 0
+
+        achievements = [
+            {
+                'title': '50 Puzzles gelöst',
+                'current': total_solved,
+                'target': 50,
+                'progress': min((total_solved / 50 * 100), 100)
+            },
+            {
+                'title': '80% Erfolgsrate',
+                'current': round(overall_success_rate, 1),
+                'target': 80,
+                'progress': min((overall_success_rate / 80 * 100), 100)
+            },
+            {
+                'title': '10 Tage Streak',
+                'current': streak_days,
+                'target': 10,
+                'progress': min((streak_days / 10 * 100), 100)
+            }
+        ]
+
+        # === OVERALL STATS ===
+        games_count = Game.query.filter_by(user_id=current_user.id).count()
+        errors_count = Error.query.filter_by(user_id=current_user.id).count()
+
+        return jsonify({
+            'success': True,
+            'current_week': {
+                'puzzles_solved': current_week_count,
+                'success_rate': round(current_week_success, 1),
+                'avg_time': int(current_week_avg_time)
+            },
+            'last_week': {
+                'puzzles_solved': last_week_count,
+                'success_rate': round(last_week_success, 1),
+                'avg_time': int(last_week_avg_time)
+            },
+            'streak_days': streak_days,
+            'weaknesses': top_weaknesses,
+            'recent_activity': recent_activity,
+            'achievements': achievements,
+            'overall': {
+                'total_solved': total_solved,
+                'total_games': games_count,
+                'total_errors': errors_count,
+                'success_rate': round(overall_success_rate, 1)
+            }
+        })
+
+    except Exception as e:
+        print(f"Error getting dashboard stats: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
