@@ -1,0 +1,577 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Chess Coach{% endblock %}
+
+{% block content %}
+<div class="analytics-container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="mb-2">Performance Analytics</h1>
+            <p class="text-muted mb-0">Detaillierte Statistiken zu deinem Puzzle-Training</p>
+        </div>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-value" id="totalSolved">-</div>
+                <div class="stat-label">Puzzles gelöst</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value" id="successRate">-</div>
+                <div class="stat-label">Erfolgsrate</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-value" id="avgTime">-</div>
+                <div class="stat-label">Ø Lösungszeit</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-value" id="avgRating">-</div>
+                <div class="stat-label">Ø Rating</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row g-4 mb-4">
+        <!-- Pattern Success Chart -->
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <h5 class="chart-title">Erfolgsrate nach Pattern</h5>
+                <p class="text-muted small mb-3">Wie gut löst du verschiedene taktische Muster?</p>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="patternSuccessChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Difficulty Chart -->
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <h5 class="chart-title">Erfolgsrate nach Schwierigkeit</h5>
+                <p class="text-muted small mb-3">Performance bei verschiedenen Rating-Bereichen</p>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="difficultyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row g-4 mb-4">
+        <!-- Average Time per Pattern -->
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <h5 class="chart-title">Durchschnittliche Lösungszeit</h5>
+                <p class="text-muted small mb-3">Wie schnell löst du verschiedene Pattern?</p>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="timePerPatternChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <h5 class="chart-title">Aktivität (letzte 7 Tage)</h5>
+                <p class="text-muted small mb-3">Anzahl gelöster Puzzles pro Tag</p>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pattern Details Table -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="chart-card">
+                <h5 class="chart-title mb-3">Detaillierte Pattern-Statistiken</h5>
+                <div class="table-responsive">
+                    <table class="table pattern-table">
+                        <thead>
+                            <tr>
+                                <th>Pattern</th>
+                                <th class="text-center">Versuche</th>
+                                <th class="text-center">Gelöst</th>
+                                <th class="text-center">Erfolgsrate</th>
+                                <th class="text-center">Ø Zeit</th>
+                                <th class="text-center">Ø Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patternTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">Lade Daten...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.analytics-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(255,255,255,0.05) 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--accent);
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.chart-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    height: 100%;
+}
+
+.chart-title {
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.pattern-table {
+    color: #fff;
+    margin-bottom: 0;
+}
+
+.pattern-table thead th {
+    background-color: rgba(255,255,255,0.05);
+    border-bottom: 2px solid var(--accent);
+    padding: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+}
+
+.pattern-table tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.pattern-table tbody tr:hover {
+    background-color: rgba(255,255,255,0.05);
+}
+
+.pattern-name {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.success-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.success-high {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+}
+
+.success-medium {
+    background-color: rgba(255, 193, 7, 0.2);
+    color: #FFC107;
+}
+
+.success-low {
+    background-color: rgba(244, 67, 54, 0.2);
+    color: #F44336;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Lade Analytics-Daten vom Backend
+    $.ajax({
+        url: '/api/puzzle-statistics',
+        method: 'GET',
+        success: function(data) {
+            console.log('Analytics data:', data);
+            updateOverviewCards(data.overall);
+            createPatternSuccessChart(data.by_pattern);
+            createDifficultyChart(data.by_difficulty);
+            createTimePerPatternChart(data.by_pattern);
+            createActivityChart(data.recent_activity);
+            updatePatternTable(data.by_pattern);
+        },
+        error: function(xhr, status, error) {
+            console.error('Fehler beim Laden der Analytics:', error);
+            $('#totalSolved').text('Error');
+            $('#successRate').text('Error');
+            $('#avgTime').text('Error');
+            $('#avgRating').text('Error');
+        }
+    });
+});
+
+// Update Overview Cards
+function updateOverviewCards(overall) {
+    $('#totalSolved').text(overall.puzzles_solved || 0);
+    $('#successRate').text((overall.success_rate || 0).toFixed(1) + '%');
+
+    if (overall.avg_solve_time) {
+        const minutes = Math.floor(overall.avg_solve_time / 60);
+        const seconds = overall.avg_solve_time % 60;
+        $('#avgTime').text(minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`);
+    } else {
+        $('#avgTime').text('-');
+    }
+
+    $('#avgRating').text(overall.avg_rating || '-');
+}
+
+// Pattern Success Chart (Horizontal Bar)
+function createPatternSuccessChart(patternData) {
+    const ctx = document.getElementById('patternSuccessChart').getContext('2d');
+
+    // Deutsche Pattern-Namen
+    const patternNames = {
+        'fork': 'Gabel',
+        'pin': 'Fesselung',
+        'skewer': 'Spieß',
+        'mate': 'Matt',
+        'mateIn1': 'Matt in 1',
+        'mateIn2': 'Matt in 2',
+        'hangingPiece': 'Hängende Figur',
+        'discoveredAttack': 'Abzugsangriff',
+        'backRankMate': 'Grundreihenmatt'
+    };
+
+    const labels = patternData.map(p => patternNames[p.pattern] || p.pattern);
+    const successRates = patternData.map(p => p.success_rate);
+
+    // Farben basierend auf Erfolgsrate
+    const colors = successRates.map(rate => {
+        if (rate >= 70) return 'rgba(76, 175, 80, 0.8)'; // Grün
+        if (rate >= 50) return 'rgba(255, 193, 7, 0.8)'; // Gelb
+        return 'rgba(244, 67, 54, 0.8)'; // Rot
+    });
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Erfolgsrate (%)',
+                data: successRates,
+                backgroundColor: colors,
+                borderColor: colors.map(c => c.replace('0.8', '1')),
+                borderWidth: 2
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Erfolgsrate: ' + context.parsed.x.toFixed(1) + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)'
+                    },
+                    ticks: {
+                        color: '#fff',
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                },
+                y: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#fff'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Difficulty Chart (Doughnut)
+function createDifficultyChart(difficultyData) {
+    const ctx = document.getElementById('difficultyChart').getContext('2d');
+
+    const labels = ['Einfach (< 1400)', 'Mittel (1400-1600)', 'Schwer (> 1600)'];
+    const successRates = [
+        difficultyData.easy?.success_rate || 0,
+        difficultyData.medium?.success_rate || 0,
+        difficultyData.hard?.success_rate || 0
+    ];
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: successRates,
+                backgroundColor: [
+                    'rgba(76, 175, 80, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(244, 67, 54, 0.8)'
+                ],
+                borderColor: '#1a1a1a',
+                borderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#fff',
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed.toFixed(1) + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Time per Pattern Chart
+function createTimePerPatternChart(patternData) {
+    const ctx = document.getElementById('timePerPatternChart').getContext('2d');
+
+    const patternNames = {
+        'fork': 'Gabel',
+        'pin': 'Fesselung',
+        'skewer': 'Spieß',
+        'mate': 'Matt',
+        'mateIn1': 'Matt in 1',
+        'mateIn2': 'Matt in 2',
+        'hangingPiece': 'Hängende Figur',
+        'discoveredAttack': 'Abzugsangriff',
+        'backRankMate': 'Grundreihenmatt'
+    };
+
+    const labels = patternData.map(p => patternNames[p.pattern] || p.pattern);
+    const avgTimes = patternData.map(p => p.avg_solve_time || 0);
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Durchschnittliche Zeit (s)',
+                data: avgTimes,
+                backgroundColor: 'rgba(0, 188, 212, 0.8)',
+                borderColor: 'rgba(0, 188, 212, 1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)'
+                    },
+                    ticks: {
+                        color: '#fff',
+                        callback: function(value) {
+                            return value + 's';
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#fff'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Activity Chart (Line)
+function createActivityChart(activityData) {
+    const ctx = document.getElementById('activityChart').getContext('2d');
+
+    const labels = activityData.map(a => a.date);
+    const counts = activityData.map(a => a.count);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Gelöste Puzzles',
+                data: counts,
+                borderColor: 'rgba(0, 188, 212, 1)',
+                backgroundColor: 'rgba(0, 188, 212, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointBackgroundColor: 'rgba(0, 188, 212, 1)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)'
+                    },
+                    ticks: {
+                        color: '#fff',
+                        stepSize: 1
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#fff'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update Pattern Table
+function updatePatternTable(patternData) {
+    const tbody = $('#patternTableBody');
+    tbody.empty();
+
+    const patternNames = {
+        'fork': 'Gabel',
+        'pin': 'Fesselung',
+        'skewer': 'Spieß',
+        'mate': 'Matt',
+        'mateIn1': 'Matt in 1',
+        'mateIn2': 'Matt in 2',
+        'hangingPiece': 'Hängende Figur',
+        'discoveredAttack': 'Abzugsangriff',
+        'backRankMate': 'Grundreihenmatt'
+    };
+
+    patternData.forEach(p => {
+        const successClass = p.success_rate >= 70 ? 'success-high' :
+                           p.success_rate >= 50 ? 'success-medium' : 'success-low';
+
+        const timeDisplay = p.avg_solve_time ?
+            (p.avg_solve_time >= 60 ?
+                `${Math.floor(p.avg_solve_time / 60)}m ${p.avg_solve_time % 60}s` :
+                `${p.avg_solve_time}s`) : '-';
+
+        const row = `
+            <tr>
+                <td class="pattern-name">${patternNames[p.pattern] || p.pattern}</td>
+                <td class="text-center">${p.total_attempts}</td>
+                <td class="text-center">${p.solved}</td>
+                <td class="text-center">
+                    <span class="success-badge ${successClass}">
+                        ${p.success_rate.toFixed(1)}%
+                    </span>
+                </td>
+                <td class="text-center">${timeDisplay}</td>
+                <td class="text-center">${p.avg_rating ? p.avg_rating.toFixed(0) : '-'}</td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+
+    if (patternData.length === 0) {
+        tbody.append('<tr><td colspan="6" class="text-center text-muted">Noch keine Daten verfügbar</td></tr>');
+    }
+}
+</script>
+{% endblock %}

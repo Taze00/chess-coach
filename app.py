@@ -219,6 +219,13 @@ def error_detail(error_id):
     return render_template('error_detail.html', error=error, game=game, moves=moves)
 
 
+@app.route('/analytics')
+@login_required
+def analytics():
+    """Analytics dashboard with detailed puzzle statistics."""
+    return render_template('analytics.html')
+
+
 @app.route('/training')
 @login_required
 def training():
@@ -340,26 +347,58 @@ def get_puzzle():
                 tactical_pattern = fallback[0] if fallback else 'fork'
                 print(f"Fallback pattern: {tactical_pattern}")
 
-        # Get puzzles that the user hasn't solved yet AND haven't seen in this session
+        # SPACED REPETITION SYSTEM
+        # 1. Get failed puzzles that should be reviewed (not attempted in last 24 hours)
+        from datetime import datetime, timedelta
+
+        review_threshold = datetime.utcnow() - timedelta(hours=24)
+        failed_puzzles = PuzzleProgress.query.filter(
+            PuzzleProgress.user_id == current_user.id,
+            PuzzleProgress.solved == False,
+            PuzzleProgress.attempts > 0,
+            PuzzleProgress.last_attempt < review_threshold
+        ).all()
+
+        # 2. Get successfully solved puzzles (exclude these)
         solved_puzzle_ids = [p.puzzle_id for p in PuzzleProgress.query.filter_by(
             user_id=current_user.id,
             solved=True
         ).all()]
 
-        # Track seen puzzles in session
+        # 3. Track seen puzzles in this session (to avoid immediate repeats)
         if 'seen_puzzles' not in session:
             session['seen_puzzles'] = []
 
-        # Combine solved and recently seen
+        # 4. Combine solved and recently seen
         exclude_ids = list(set(solved_puzzle_ids + session['seen_puzzles']))
 
         print(f"Tactical pattern: {tactical_pattern}")
         print(f"Solved puzzle IDs: {solved_puzzle_ids}")
+        print(f"Failed puzzles to review: {len(failed_puzzles)}")
         print(f"Seen in session: {session['seen_puzzles']}")
         print(f"Total puzzles in DB: {Puzzle.query.count()}")
 
-        # Get a suitable puzzle (excluding solved and seen ones)
-        puzzle = PuzzleService.get_puzzle_for_tactical_pattern(tactical_pattern, user_rating=1500, exclude_ids=exclude_ids)
+        # 5. PRIORITY: Try to get a failed puzzle that matches the tactical pattern first
+        puzzle = None
+        if failed_puzzles:
+            # Filter failed puzzles by tactical pattern
+            matching_failed = [fp for fp in failed_puzzles
+                             if fp.puzzle_id not in session['seen_puzzles']]
+
+            if matching_failed:
+                # Get the actual Puzzle objects for failed attempts
+                failed_puzzle_ids = [fp.puzzle_id for fp in matching_failed]
+                puzzle = Puzzle.query.filter(
+                    Puzzle.puzzle_id.in_(failed_puzzle_ids),
+                    Puzzle.themes.like(f'%{tactical_pattern}%')
+                ).first()
+
+                if puzzle:
+                    print(f"[SPACED REPETITION] Returning failed puzzle: {puzzle.puzzle_id}")
+
+        # 6. If no failed puzzle found, get a new puzzle (excluding solved and seen ones)
+        if not puzzle:
+            puzzle = PuzzleService.get_puzzle_for_tactical_pattern(tactical_pattern, user_rating=1500, exclude_ids=exclude_ids)
 
         print(f"Puzzle for pattern '{tactical_pattern}': {puzzle.puzzle_id if puzzle else 'None'}")
 
