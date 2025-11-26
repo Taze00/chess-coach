@@ -549,13 +549,9 @@
 
                     <!-- Puzzle Info -->
                     <div class="puzzle-info">
-                        <h4>Puzzle Info</h4>
-                        <div style="margin-bottom: 10px;">
-                            <span class="difficulty-badge difficulty-medium">⭐⭐ Mittel</span>
-                        </div>
+                        <h4>Pattern</h4>
                         <div class="puzzle-themes">
                             <span class="theme-badge">Gabel</span>
-                            <span class="theme-badge">Mittelspiel</span>
                         </div>
                     </div>
 
@@ -1175,9 +1171,7 @@
             difficultyText = '⭐⭐⭐ Schwer';
         }
 
-        $('.difficulty-badge').removeClass('difficulty-easy difficulty-medium difficulty-hard')
-            .addClass(difficultyClass)
-            .text(difficultyText);
+        // Schwierigkeits-Badge wird nicht mehr angezeigt (Spoiler)
 
         // Update Themes
         $('.puzzle-themes').empty();
@@ -1190,11 +1184,11 @@
             // Deutsche Übersetzungen für alle Lichess-Themes
             var germanThemes = {
                 'mate': 'Matt',
-                'mateIn1': 'Matt in 1',
-                'mateIn2': 'Matt in 2',
-                'mateIn3': 'Matt in 3',
-                'mateIn4': 'Matt in 4',
-                'mateIn5': 'Matt in 5',
+                'mateIn1': 'Matt in 1',  // SPOILER - wird nicht angezeigt
+                'mateIn2': 'Matt in 2',  // SPOILER - wird nicht angezeigt
+                'mateIn3': 'Matt in 3',  // SPOILER - wird nicht angezeigt
+                'mateIn4': 'Matt in 4',  // SPOILER - wird nicht angezeigt
+                'mateIn5': 'Matt in 5',  // SPOILER - wird nicht angezeigt
                 'fork': 'Gabel',
                 'pin': 'Fesselung',
                 'skewer': 'Spieß',
@@ -1242,18 +1236,29 @@
                 'superGM': 'Super-GM'
             };
 
-            // Nur die wichtigsten Themes anzeigen (max 4), ohne generische wie "oneMove", "short", etc.
-            var skipThemes = ['oneMove', 'short', 'long', 'veryLong', 'master', 'masterVsMaster', 'superGM'];
+            // ANTI-SPOILER: Filtere alle Themes, die zu viel verraten
+            var spoilerThemes = [
+                'mate', 'mateIn1', 'mateIn2', 'mateIn3', 'mateIn4', 'mateIn5',  // Matt-Themes verraten Lösung
+                'oneMove', 'short', 'long', 'veryLong',  // Längen-Infos sind Spoiler
+                'master', 'masterVsMaster', 'superGM',  // Unnötige Infos
+                'advantage', 'crushing', 'equality',  // Bewertungen sind Spoiler
+                'middlegame', 'endgame', 'opening'  // Zu generisch
+            ];
             var displayedCount = 0;
 
             themesArray.forEach(function(theme) {
-                if (displayedCount >= 4) return; // Max 4 Themes
-                if (skipThemes.includes(theme)) return; // Überspringe generische Themes
+                if (displayedCount >= 3) return; // Max 3 Themes
+                if (spoilerThemes.includes(theme)) return; // Überspringe Spoiler-Themes
 
                 var displayTheme = germanThemes[theme] || theme;
                 $('.puzzle-themes').append(`<span class="theme-badge">${displayTheme}</span> `);
                 displayedCount++;
             });
+
+            // Falls keine Themes übrig sind, zeige generisches "Taktik"
+            if (displayedCount === 0) {
+                $('.puzzle-themes').append(`<span class="theme-badge">Taktik</span>`);
+            }
         }
     }
 
@@ -1506,16 +1511,19 @@
             // Normaler Fall: Bewege Index
             var newIndex = historyIndex + direction;
 
-            // Grenzen prüfen
+            // Grenzen prüfen - STOPPE bei Start und Ende
             if (newIndex < 0) {
-                newIndex = 0; // Erste Position in History
+                return; // Bereits am Start, nicht weiter zurück
             } else if (newIndex >= moveHistory.length) {
-                newIndex = -1; // Aktuelle Position (Ende)
+                // Am Ende angekommen, gehe zu aktueller Position
+                if (historyIndex === moveHistory.length - 1) {
+                    historyIndex = -1;
+                } else {
+                    return; // Bereits am Ende
+                }
+            } else {
+                historyIndex = newIndex;
             }
-
-            if (newIndex === historyIndex) return; // Keine Änderung
-
-            historyIndex = newIndex;
         }
 
         isViewingHistory = (historyIndex !== -1);
@@ -1559,6 +1567,151 @@
     function showCoachMessage(title, message) {
         $('#coachMessage h4').text(title);
         $('#coachMessage p').text(message);
+    }
+
+    // === INTELLIGENTES ERKLÄRUNGS-SYSTEM ===
+    // Generiere taktische Erklärung basierend auf Pattern und Situation
+    function getPatternExplanation(pattern, moveNumber, isCorrect) {
+        var explanations = {
+            'fork': {
+                intro: 'Bei einer Gabel greifen wir zwei oder mehr gegnerische Figuren gleichzeitig an.',
+                correctMove: [
+                    'Perfekt! Du hast die Gabel gesehen. Dein Springer/Bauer greift jetzt mehrere Figuren gleichzeitig an.',
+                    'Sehr gut! Diese Gabel zwingt den Gegner, eine seiner Figuren zu opfern.',
+                    'Exzellent! Der Doppelangriff gibt dem Gegner keine gute Verteidigung.'
+                ],
+                wrongMove: [
+                    'Suche nach einem Zug, der zwei gegnerische Figuren gleichzeitig angreift.',
+                    'Überlege: Welche Figur kann ich so platzieren, dass sie mehrere Ziele bedroht?',
+                    'Eine Gabel bedeutet Doppelangriff - der Gegner kann nicht beide Figuren retten.'
+                ],
+                nextMove: 'Achte darauf, welche Figur der Gegner retten wird, und schlage dann die andere.'
+            },
+            'pin': {
+                intro: 'Eine Fesselung verhindert, dass eine Figur ziehen kann, weil sonst eine wertvollere Figur dahinter geschlagen würde.',
+                correctMove: [
+                    'Ausgezeichnet! Diese Fesselung macht die gegnerische Figur bewegungsunfähig.',
+                    'Sehr gut! Der Gegner kann diese gefesselte Figur nicht bewegen, ohne Material zu verlieren.',
+                    'Perfekt! Die Fesselung nutzt die Geometrie des Bretts optimal aus.'
+                ],
+                wrongMove: [
+                    'Suche nach einer Möglichkeit, eine gegnerische Figur zu fesseln.',
+                    'Überlege: Kann ich eine Linie (Reihe, Linie oder Diagonale) nutzen, um zwei Figuren zu bedrohen?',
+                    'Bei einer Fesselung steht eine weniger wertvolle Figur vor einer wertvolleren.'
+                ],
+                nextMove: 'Nutze jetzt die Tatsache, dass die gefesselte Figur sich nicht verteidigen kann.'
+            },
+            'skewer': {
+                intro: 'Ein Spieß zwingt eine wertvolle Figur zum Wegziehen, wodurch eine Figur dahinter geschlagen werden kann.',
+                correctMove: [
+                    'Perfekt! Der Spieß zwingt die wertvolle Figur zum Ziehen.',
+                    'Ausgezeichnet! Jetzt muss der König/Die Dame weichen und gibt eine Figur preis.',
+                    'Sehr gut! Das ist das Gegenteil einer Fesselung - die wertvollere Figur steht vorne.'
+                ],
+                wrongMove: [
+                    'Suche nach einer Linie, auf der eine wertvolle gegnerische Figur vor einer anderen steht.',
+                    'Ein Spieß bedroht zwei Figuren auf einer Linie - die vordere (wertvollere) muss ziehen.',
+                    'Überlege: Welche Fernfigur (Dame, Turm, Läufer) kann ich nutzen?'
+                ],
+                nextMove: 'Schlage jetzt die nun ungedeckte Figur.'
+            },
+            'discoveredAttack': {
+                intro: 'Ein Abzugsangriff entsteht, wenn eine Figur wegzieht und dadurch eine dahinterstehende Figur einen Angriff eröffnet.',
+                correctMove: [
+                    'Brillant! Der Abzugsangriff gibt dem Gegner zwei Probleme gleichzeitig.',
+                    'Perfekt! Die wegziehende Figur UND die dahinterstehende Figur bedrohen nun etwas.',
+                    'Ausgezeichnet! Solche Abzugsangriffe sind oft entscheidend.'
+                ],
+                wrongMove: [
+                    'Suche nach einer Figur, die du wegziehen kannst, um einen Angriff zu eröffnen.',
+                    'Überlege: Steht eine deiner Figuren vor einer Fernfigur, die einen Angriff ausführen könnte?',
+                    'Der Trick ist, dass BEIDE Figuren gleichzeitig drohen - eine durch Wegziehen, eine durch Aufdecken.'
+                ],
+                nextMove: 'Der Gegner kann nicht beide Bedrohungen abwehren.'
+            },
+            'hangingPiece': {
+                intro: 'Eine hängende Figur ist unverteidigt oder nur unzureichend gedeckt und kann geschlagen werden.',
+                correctMove: [
+                    'Gut gesehen! Die ungedeckte Figur ist jetzt deine.',
+                    'Richtig! Der Gegner hat diese Figur nicht ausreichend geschützt.',
+                    'Perfekt! Immer nach hängenden Figuren Ausschau halten.'
+                ],
+                wrongMove: [
+                    'Schaue nach gegnerischen Figuren, die unverteidigt oder schlecht gedeckt sind.',
+                    'Überlege: Welche Figur des Gegners hat keinen oder nur unzureichenden Schutz?',
+                    'Zähle Angreifer und Verteidiger - gibt es eine Figur, die du günstig tauschen kannst?'
+                ],
+                nextMove: 'Nutze deinen Materialvorteil jetzt aus.'
+            },
+            'sacrifice': {
+                intro: 'Ein Opfer gibt bewusst Material ab, um einen größeren taktischen oder positionellen Vorteil zu erlangen.',
+                correctMove: [
+                    'Mutig und richtig! Das Opfer öffnet entscheidende Linien oder Diagonalen.',
+                    'Brillant! Manchmal muss man Material geben, um den König anzugreifen.',
+                    'Perfekt! Dieses Opfer verschafft dir einen unstoppbaren Angriff.'
+                ],
+                wrongMove: [
+                    'Manchmal ist der beste Zug, Material zu opfern. Schaue nach aggressiven Möglichkeiten.',
+                    'Überlege: Was erreiche ich, wenn ich diese Figur opfere? Gibt es eine Folge?',
+                    'Nicht immer ist der materiell beste Zug auch der stärkste. Suche nach einem Durchbruch.'
+                ],
+                nextMove: 'Nutze jetzt die Schwäche in der gegnerischen Stellung, die du geschaffen hast.'
+            },
+            'backRankMate': {
+                intro: 'Ein Grundreihenmatt nutzt aus, dass der gegnerische König auf der Grundreihe gefangen ist.',
+                correctMove: [
+                    'Exzellent! Der König hat keinen Fluchtweg mehr.',
+                    'Perfekt! Die eigenen Bauern blockieren den Fluchtweg - das ist Matt!',
+                    'Sehr gut! Grundreihenmatt ist ein klassisches Muster.'
+                ],
+                wrongMove: [
+                    'Schaue auf die gegnerische Grundreihe. Ist der König dort gefangen?',
+                    'Überlege: Kann ich mit einem Turm oder einer Dame die Grundreihe angreifen?',
+                    'Der König hat oft keine Fluchtfelder, wenn die eigenen Bauern noch vor ihm stehen.'
+                ],
+                nextMove: 'Das ist Matt - das Puzzle ist gelöst!'
+            },
+            'trappedPiece': {
+                intro: 'Eine gefangene Figur hat keine guten Zugmöglichkeiten mehr und kann eingekesselt werden.',
+                correctMove: [
+                    'Sehr gut! Die Figur ist jetzt gefangen und kann nicht mehr entkommen.',
+                    'Perfekt! Du hast die Fluchtwege systematisch abgeschnitten.',
+                    'Ausgezeichnet! Die gefangene Figur wird Material kosten.'
+                ],
+                wrongMove: [
+                    'Suche nach einer gegnerischen Figur, die schlecht platziert ist und wenige Felder hat.',
+                    'Überlege: Kann ich die Fluchtfelder dieser Figur kontrollieren?',
+                    'Gefangene Figuren stehen oft am Brettrand oder in der eigenen Bauernstruktur.'
+                ],
+                nextMove: 'Schließe das Netz jetzt und gewinne die gefangene Figur.'
+            },
+            'exposedKing': {
+                intro: 'Ein exponierter König ohne Schutz ist anfällig für Angriffe.',
+                correctMove: [
+                    'Ausgezeichnet! Der ungeschützte König wird jetzt zum Ziel.',
+                    'Perfekt! Nutze die fehlende Deckung für einen direkten Angriff.',
+                    'Sehr gut! Ein exponierter König ist immer in Gefahr.'
+                ],
+                wrongMove: [
+                    'Schaue auf den gegnerischen König. Fehlt ihm Schutz durch Bauern oder Figuren?',
+                    'Überlege: Welche Figuren können den exponierten König direkt angreifen?',
+                    'Ein ungeschützter König ist die größte Schwäche - nutze sie aus!'
+                ],
+                nextMove: 'Erhöhe den Druck auf den König weiter.'
+            }
+        };
+
+        var patternData = explanations[pattern] || explanations['hangingPiece']; // Fallback
+
+        if (isCorrect) {
+            // Wähle zufällige Erfolgsmeldung
+            var messages = patternData.correctMove;
+            return messages[Math.floor(Math.random() * messages.length)];
+        } else {
+            // Wähle zufällige Hilfsmeldung
+            var messages = patternData.wrongMove;
+            return messages[Math.floor(Math.random() * messages.length)];
+        }
     }
 
     // Zeige Feedback
@@ -1633,7 +1786,10 @@
                 return true;
             } else {
                 // Zug war richtig, aber es gibt noch weitere Züge
+                var pattern = currentPuzzle.tactical_pattern || 'hangingPiece';
+                var explanation = getPatternExplanation(pattern, currentMoveIndex, true);
                 showFeedback('✓ Richtig! Weiter so!', 'success');
+                showCoachMessage('Sehr gut!', explanation);
 
                 // Der nächste Zug in der Lösung ist der Gegner-Zug - spiele ihn automatisch
                 setTimeout(function() {
@@ -1677,8 +1833,10 @@
                                 loadPuzzle();
                             }, 2000);
                         } else {
-                            // Gib Feedback und fordere nächsten Zug an
-                            showCoachMessage('Gegner hat gezogen', 'Jetzt bist du wieder am Zug. Finde die beste Fortsetzung!');
+                            // Gib Feedback und fordere nächsten Zug an mit taktischer Erklärung
+                            var pattern = currentPuzzle.tactical_pattern || 'hangingPiece';
+                            var explanation = getPatternExplanation(pattern, currentMoveIndex, false);
+                            showCoachMessage('Nächster Zug', explanation);
                         }
                     } else {
                         console.error('Failed to play opponent move:', opponentMove);
@@ -1688,9 +1846,11 @@
                 return true;
             }
         } else {
-            // Falscher Zug
+            // Falscher Zug - gib hilfreiche Erklärung basierend auf Pattern
+            var pattern = currentPuzzle.tactical_pattern || 'hangingPiece';
+            var explanation = getPatternExplanation(pattern, currentMoveIndex, false);
             showFeedback('❌ Falsch! Versuch es nochmal!', 'error');
-            showCoachMessage('Hmm...', 'Das ist nicht die optimale Lösung. Überlege nochmal, welcher Zug am stärksten ist.');
+            showCoachMessage('Noch nicht ganz...', explanation);
 
             // Zug zurücknehmen
             game.undo();
