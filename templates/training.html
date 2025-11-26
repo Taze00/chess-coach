@@ -649,7 +649,7 @@
                     <!-- Coach Nachricht - Direkt unter Header -->
                     <div class="coach-message" id="coachMessage">
                         <h4>Taktikaufgabe</h4>
-                        <p>Finde den besten Zug für Weiß! Überlege dir, welche taktischen Motive in der Stellung vorhanden sind.</p>
+                        <p>Finde die beste Fortsetzung! Überlege dir, welche taktischen Motive in der Stellung vorhanden sind.</p>
                     </div>
 
                     <!-- Feedback Box -->
@@ -1241,7 +1241,7 @@
                         coachingText = 'Kannst du durch Wegziehen einer Figur einen versteckten Angriff aufdecken?';
                     }
 
-                    showCoachMessage('Taktikaufgabe', `Finde den besten Zug für ${playerColorText}! ${coachingText}`);
+                    showCoachMessage('Taktikaufgabe', `${playerColorText} ist am Zug. ${coachingText}`);
 
                     console.log('Lösung:', currentSolutionMoves);
                 } else {
@@ -1616,12 +1616,7 @@
             if (newIndex < 0) {
                 return; // Bereits am Start, nicht weiter zurück
             } else if (newIndex >= moveHistory.length) {
-                // Am Ende angekommen, gehe zu aktueller Position
-                if (historyIndex === moveHistory.length - 1) {
-                    historyIndex = -1;
-                } else {
-                    return; // Bereits am Ende
-                }
+                return; // Bereits am Ende, stoppe hier
             } else {
                 historyIndex = newIndex;
             }

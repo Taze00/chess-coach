@@ -24,8 +24,8 @@
             {% endif %}
 
             <a href="{{ url_for('training') }}" class="btn-hero">
-                <span class="btn-hero-icon">💪</span>
-                <span class="btn-hero-text">Training starten</span>
+                <span class="btn-hero-icon">🧩</span>
+                <span class="btn-hero-text">Puzzles starten</span>
             </a>
         </div>
 
@@ -68,14 +68,6 @@
         </a>
     </div>
     {% endif %}
-
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-        <a href="{{ url_for('analyse') }}" class="quick-action-btn">
-            <span class="quick-action-icon">📊</span>
-            <span class="quick-action-text">Analyse & Import</span>
-        </a>
-    </div>
 </div>
 
 <style>
@@ -295,41 +287,6 @@
     background: rgba(255,255,255,0.15);
     transform: translateY(-2px);
     color: #fff;
-}
-
-/* Quick Actions */
-.quick-actions {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-}
-
-.quick-action-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: var(--card-bg);
-    color: #fff;
-    padding: 1rem 2rem;
-    border-radius: 12px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.quick-action-btn:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-    color: #fff;
-}
-
-.quick-action-icon {
-    font-size: 1.5rem;
-}
-
-.quick-action-text {
-    font-size: 1rem;
 }
 
 /* Responsive */
