@@ -303,19 +303,10 @@ def dashboard():
     return render_template('dashboard.html', stats=stats)
 
 
-@app.route('/games')
+@app.route('/analyse')
 @login_required
-def games():
-    """Games list page."""
-    # Get all games for current user, ordered by most recent first
-    user_games = Game.query.filter_by(user_id=current_user.id).order_by(Game.played_at.desc()).all()
-    return render_template('games.html', games=user_games)
-
-
-@app.route('/errors')
-@login_required
-def errors():
-    """Errors/mistakes overview page."""
+def analyse():
+    """Analysis page: Import games, view errors, and performance stats."""
     from models import Error
     from flask import request
 
@@ -372,7 +363,7 @@ def errors():
         'crushing': 'Vernichtend'
     }
 
-    return render_template('errors.html',
+    return render_template('analyse.html',
                           errors=user_errors,
                           categorized=categorized,
                           pattern_translations=pattern_translations,
@@ -411,13 +402,6 @@ def error_detail(error_id):
         board.push(move)
 
     return render_template('error_detail.html', error=error, game=game, moves=moves)
-
-
-@app.route('/analytics')
-@login_required
-def analytics():
-    """Analytics dashboard with detailed puzzle statistics."""
-    return render_template('analytics.html')
 
 
 @app.route('/training')
@@ -484,13 +468,6 @@ def training():
         pattern_filter=pattern_filter,
         pattern_translations=pattern_translations
     )
-
-
-@app.route('/progress')
-@login_required
-def progress():
-    """Progress and analytics page (placeholder)."""
-    return render_template('progress.html')
 
 
 @app.route('/api/get-puzzle', methods=['GET'])

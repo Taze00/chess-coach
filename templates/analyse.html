@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Fehler-Analyse - Chess Coach{% endblock %}
+{% block title %}Analyse - Chess Coach{% endblock %}
 
 {% block content %}
 <div class="errors-new-page">
@@ -13,7 +13,7 @@
         {% if pattern_filter %}
         <div class="filter-badge">
             🎯 {{ pattern_translations.get(pattern_filter, pattern_filter) }}
-            <a href="{{ url_for('errors') }}" class="filter-clear">✕</a>
+            <a href="{{ url_for('analyse') }}" class="filter-clear">✕</a>
         </div>
         {% endif %}
     </div>
@@ -122,7 +122,7 @@
                     </a>
                     {% endfor %}
                     {% if pattern_error_list|length > 3 %}
-                    <a href="{{ url_for('errors', pattern=pattern) }}" class="show-more-link">
+                    <a href="{{ url_for('analyse', pattern=pattern) }}" class="show-more-link">
                         + {{ pattern_error_list|length - 3 }} weitere anzeigen
                     </a>
                     {% endif %}
