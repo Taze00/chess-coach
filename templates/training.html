@@ -42,8 +42,7 @@
 
     /* Eigenes Schachbrett - CSS Grid */
     #chessboard {
-        width: 100%;
-        max-width: 700px;
+        width: min(90vh, 90vw, 800px); /* Nimmt 90% vom kleineren Wert (Höhe oder Breite), max 800px */
         margin: 0 auto;
         display: grid;
         grid-template-columns: repeat(8, 1fr);
@@ -53,16 +52,17 @@
         user-select: none;
     }
 
-    /* Responsive */
-    @media (min-width: 1400px) {
+    /* Responsive - größere Bildschirme */
+    @media (min-width: 1600px) and (min-height: 900px) {
         #chessboard {
-            max-width: 750px;
+            width: min(85vh, 50vw, 900px); /* Noch größer auf großen Monitoren */
         }
     }
 
+    /* Kleinere Bildschirme */
     @media (max-width: 768px) {
         #chessboard {
-            max-width: 500px;
+            width: min(80vh, 95vw, 600px);
         }
     }
 
@@ -206,6 +206,61 @@
         transform: translate(-50%, -50%);
         background: transparent;
         z-index: 5;
+    }
+
+    /* Visuelles Feedback auf Figuren */
+    .square.move-correct::after {
+        content: "✓";
+        position: absolute;
+        top: -15%;
+        right: -15%;
+        width: 50px;
+        height: 50px;
+        background: #27ae60;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: bold;
+        z-index: 100;
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.6);
+        animation: checkmark-pop 0.5s ease-out;
+    }
+
+    .square.move-incorrect::after {
+        content: "✗";
+        position: absolute;
+        top: -15%;
+        right: -15%;
+        width: 50px;
+        height: 50px;
+        background: #e74c3c;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: bold;
+        z-index: 100;
+        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.6);
+        animation: checkmark-pop 0.5s ease-out;
+    }
+
+    @keyframes checkmark-pop {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
     }
 
     /* Evaluation Bar Container */
@@ -404,22 +459,80 @@
     }
 
     .btn-puzzle {
-        padding: 10px;
+        padding: 12px 20px;
         border: none;
-        border-radius: 5px;
-        font-weight: bold;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
         cursor: pointer;
         transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
     }
 
-    .btn-hint, .btn-solution, .btn-next {
-        background: rgba(52, 152, 219, 0.2);
-        color: var(--accent);
-        border: 2px solid var(--accent);
+    /* Tipp Button - Blau/Info */
+    .btn-hint {
+        background: rgba(52, 152, 219, 0.15);
+        color: #3498db;
+        border: 2px solid rgba(52, 152, 219, 0.3);
     }
 
-    .btn-hint:hover, .btn-solution:hover, .btn-next:hover {
-        background: rgba(52, 152, 219, 0.3);
+    .btn-hint:hover {
+        background: rgba(52, 152, 219, 0.25);
+        border-color: #3498db;
+        transform: translateY(-2px);
+    }
+
+    /* Lösung Button - Orange/Warnung */
+    .btn-solution {
+        background: rgba(243, 156, 18, 0.15);
+        color: #f39c12;
+        border: 2px solid rgba(243, 156, 18, 0.3);
+    }
+
+    .btn-solution:hover {
+        background: rgba(243, 156, 18, 0.25);
+        border-color: #f39c12;
+        transform: translateY(-2px);
+    }
+
+    /* Nächstes Puzzle Button - Standard */
+    .btn-next {
+        background: rgba(149, 165, 166, 0.15);
+        color: #95a5a6;
+        border: 2px solid rgba(149, 165, 166, 0.3);
+    }
+
+    .btn-next:hover {
+        background: rgba(149, 165, 166, 0.25);
+        border-color: #95a5a6;
+        transform: translateY(-2px);
+    }
+
+    /* Nächstes Puzzle Button - Aktiv (grün nach Puzzle-Lösung) */
+    .btn-next.active {
+        background: #27ae60;
+        color: white;
+        border: 2px solid #27ae60;
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+        animation: pulse 2s infinite;
+    }
+
+    .btn-next.active:hover {
+        background: #229954;
+        border-color: #229954;
+        transform: translateY(-2px) scale(1.05);
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+        }
+        50% {
+            box-shadow: 0 4px 20px rgba(39, 174, 96, 0.6);
+        }
     }
 
     /* Erfolgs/Fehler Feedback */
@@ -545,14 +658,6 @@
                     <div class="coach-message" id="coachMessage">
                         <h4>Taktikaufgabe</h4>
                         <p>Finde den besten Zug für Weiß! Überlege dir, welche taktischen Motive in der Stellung vorhanden sind.</p>
-                    </div>
-
-                    <!-- Puzzle Info -->
-                    <div class="puzzle-info">
-                        <h4>Pattern</h4>
-                        <div class="puzzle-themes">
-                            <span class="theme-badge">Gabel</span>
-                        </div>
                     </div>
 
                     <!-- Feedback Box -->
@@ -1053,6 +1158,10 @@
                     moveHistory = [];
                     historyIndex = -1;
                     isViewingHistory = false;
+
+                    // Reset Button-Status
+                    $('#btnNext').removeClass('active');
+                    $('#feedbackSuccess, #feedbackError').hide();
 
                     // Lade Position
                     game.load(currentPuzzle.fen);
@@ -1714,7 +1823,34 @@
         }
     }
 
-    // Zeige Feedback
+    // Zeige visuelles Feedback auf Figur (grüner Haken / rotes X)
+    function showVisualFeedback(square, isCorrect) {
+        var $square = $(`[data-square="${square}"]`);
+
+        // Entferne alte Feedback-Klassen von allen Feldern
+        $('.square').removeClass('move-correct move-incorrect');
+
+        // Füge neue Feedback-Klasse hinzu
+        if (isCorrect) {
+            $square.addClass('move-correct');
+        } else {
+            $square.addClass('move-incorrect');
+        }
+
+        // Entferne Feedback nach 1.5 Sekunden
+        setTimeout(function() {
+            $square.removeClass('move-correct move-incorrect');
+        }, 1500);
+    }
+
+    // Zeige große Erfolgsmeldung (nur bei Puzzle-Lösung)
+    function showSuccessMessage() {
+        var feedbackEl = $('#feedbackSuccess');
+        feedbackEl.text('✓ Puzzle gelöst! Sehr gut!').fadeIn();
+        // Bleibt sichtbar, kein Auto-Hide
+    }
+
+    // Zeige Feedback (für Fehler-Meldungen, die im Toast bleiben)
     function showFeedback(message, type) {
         var feedbackEl = type === 'success' ? $('#feedbackSuccess') : $('#feedbackError');
         var otherEl = type === 'success' ? $('#feedbackError') : $('#feedbackSuccess');
@@ -1772,23 +1908,22 @@
             // Ist das Puzzle gelöst?
             if (currentMoveIndex >= currentSolutionMoves.length) {
                 // Puzzle komplett gelöst!
-                showFeedback('✓ Perfekt! Puzzle gelöst!', 'success');
-                showCoachMessage('Ausgezeichnet!', 'Du hast das Puzzle erfolgreich gelöst! Nächstes Puzzle wird geladen...');
+                showVisualFeedback(to, true); // Grüner Haken auf letztem Zug
+                showSuccessMessage(); // Große Erfolgsmeldung
+                showCoachMessage('Ausgezeichnet!', 'Du hast das Puzzle erfolgreich gelöst!');
 
                 // Sende Erfolg an Backend
                 submitPuzzleResult(true);
 
-                // Lade automatisch das nächste Puzzle nach 2 Sekunden
-                setTimeout(function() {
-                    loadPuzzle();
-                }, 2000);
+                // Button grün highlighten statt Auto-Load
+                $('#btnNext').addClass('active');
 
                 return true;
             } else {
                 // Zug war richtig, aber es gibt noch weitere Züge
+                showVisualFeedback(to, true); // Grüner Haken
                 var pattern = currentPuzzle.tactical_pattern || 'hangingPiece';
                 var explanation = getPatternExplanation(pattern, currentMoveIndex, true);
-                showFeedback('✓ Richtig! Weiter so!', 'success');
                 showCoachMessage('Sehr gut!', explanation);
 
                 // Der nächste Zug in der Lösung ist der Gegner-Zug - spiele ihn automatisch
@@ -1826,12 +1961,10 @@
 
                         // Prüfe ob das Puzzle jetzt gelöst ist
                         if (currentMoveIndex >= currentSolutionMoves.length) {
-                            showFeedback('✓ Perfekt! Puzzle gelöst!', 'success');
-                            showCoachMessage('Ausgezeichnet!', 'Du hast das Puzzle erfolgreich gelöst! Nächstes Puzzle wird geladen...');
+                            showSuccessMessage();
+                            showCoachMessage('Ausgezeichnet!', 'Du hast das Puzzle erfolgreich gelöst!');
                             submitPuzzleResult(true);
-                            setTimeout(function() {
-                                loadPuzzle();
-                            }, 2000);
+                            $('#btnNext').addClass('active'); // Button grün highlighten
                         } else {
                             // Gib Feedback und fordere nächsten Zug an mit taktischer Erklärung
                             var pattern = currentPuzzle.tactical_pattern || 'hangingPiece';
@@ -1846,10 +1979,10 @@
                 return true;
             }
         } else {
-            // Falscher Zug - gib hilfreiche Erklärung basierend auf Pattern
+            // Falscher Zug - zeige rotes X und gib hilfreiche Erklärung
+            showVisualFeedback(to, false); // Rotes X
             var pattern = currentPuzzle.tactical_pattern || 'hangingPiece';
             var explanation = getPatternExplanation(pattern, currentMoveIndex, false);
-            showFeedback('❌ Falsch! Versuch es nochmal!', 'error');
             showCoachMessage('Noch nicht ganz...', explanation);
 
             // Zug zurücknehmen
