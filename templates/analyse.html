@@ -3,157 +3,80 @@
 {% block title %}Analyse - Chess Coach{% endblock %}
 
 {% block content %}
-<div class="errors-new-page">
-    <!-- Header -->
-    <div class="errors-header">
+<div class="analyse-page">
+    <!-- Header mit Import -->
+    <div class="analyse-header">
         <div>
-            <h1>Fehler-Analyse</h1>
-            <p class="text-muted">Lerne aus deinen Fehlern und verbessere dein Spiel</p>
+            <h1>📊 Analyse & Import</h1>
+            <p class="text-muted">Importiere Partien und trainiere deine Schwächen</p>
         </div>
-        {% if pattern_filter %}
-        <div class="filter-badge">
-            🎯 {{ pattern_translations.get(pattern_filter, pattern_filter) }}
-            <a href="{{ url_for('analyse') }}" class="filter-clear">✕</a>
-        </div>
-        {% endif %}
     </div>
 
-    <!-- Summary Stats -->
-    <div class="error-stats-grid">
-        <div class="stat-card blunder-card">
-            <div class="stat-icon">💥</div>
-            <div class="stat-content">
-                <div class="stat-value">{{ categorized.blunders|length }}</div>
-                <div class="stat-label">Grobe Fehler</div>
+    <!-- Import Section (immer sichtbar) -->
+    <div class="import-section">
+        <div class="import-card">
+            <div class="import-icon">📥</div>
+            <div class="import-content">
+                <h3>Spiele importieren</h3>
+                <p>Importiere deine Chess.com Partien um neue Fehler zu analysieren</p>
+                <form method="POST" action="{{ url_for('analyse') }}" class="import-form">
+                    <input type="text" name="username" placeholder="Chess.com Username" required class="username-input">
+                    <button type="submit" class="btn-import">Importieren</button>
+                </form>
             </div>
-            <div class="stat-trend">{{ '%.1f' % ((categorized.blunders|length / errors|length * 100) if errors|length > 0 else 0) }}%</div>
-        </div>
-
-        <div class="stat-card mistake-card">
-            <div class="stat-icon">⚠️</div>
-            <div class="stat-content">
-                <div class="stat-value">{{ categorized.mistakes|length }}</div>
-                <div class="stat-label">Fehler</div>
-            </div>
-            <div class="stat-trend">{{ '%.1f' % ((categorized.mistakes|length / errors|length * 100) if errors|length > 0 else 0) }}%</div>
-        </div>
-
-        <div class="stat-card inaccuracy-card">
-            <div class="stat-icon">📊</div>
-            <div class="stat-content">
-                <div class="stat-value">{{ categorized.inaccuracies|length }}</div>
-                <div class="stat-label">Ungenauigkeiten</div>
-            </div>
-            <div class="stat-trend">{{ '%.1f' % ((categorized.inaccuracies|length / errors|length * 100) if errors|length > 0 else 0) }}%</div>
-        </div>
-
-        <div class="stat-card total-card">
-            <div class="stat-icon">📋</div>
-            <div class="stat-content">
-                <div class="stat-value">{{ errors|length }}</div>
-                <div class="stat-label">Gesamt</div>
-            </div>
-            <div class="stat-trend">Alle Fehler</div>
         </div>
     </div>
 
     {% if errors %}
-    <!-- Pattern Groups -->
-    <div class="pattern-section">
-        <h3 class="section-title">📊 Fehler nach Pattern</h3>
-        <div class="pattern-groups">
-            {% set pattern_errors = {} %}
-            {% for error in errors %}
-                {% set pattern = error.get_primary_pattern() %}
-                {% if pattern %}
-                    {% if pattern not in pattern_errors %}
-                        {% set _ = pattern_errors.update({pattern: []}) %}
-                    {% endif %}
-                    {% set _ = pattern_errors[pattern].append(error) %}
-                {% endif %}
-            {% endfor %}
+    {% set pattern_errors = {} %}
+    {% for error in errors %}
+        {% set pattern = error.get_primary_pattern() %}
+        {% if pattern %}
+            {% if pattern not in pattern_errors %}
+                {% set _ = pattern_errors.update({pattern: []}) %}
+            {% endif %}
+            {% set _ = pattern_errors[pattern].append(error) %}
+        {% endif %}
+    {% endfor %}
 
+    <!-- Schnelle Stats -->
+    <div class="quick-stats">
+        <div class="quick-stat">
+            <div class="quick-stat-value">{{ errors|length }}</div>
+            <div class="quick-stat-label">Fehler gefunden</div>
+        </div>
+        <div class="quick-stat">
+            <div class="quick-stat-value">{{ pattern_errors|length }}</div>
+            <div class="quick-stat-label">Pattern erkannt</div>
+        </div>
+    </div>
+
+    <!-- Pattern Übersicht -->
+    <div class="patterns-section">
+        <h3 class="section-title">🎯 Deine Schwächen</h3>
+        <div class="patterns-chart">
             {% set sorted_patterns = [] %}
             {% for pattern, error_list in pattern_errors.items() %}
                 {% set _ = sorted_patterns.append((pattern, error_list, error_list|length)) %}
             {% endfor %}
+
+            {% set total_errors = errors|length %}
+            {% set display_count = [0] %}
             {% for pattern, pattern_error_list, count in sorted_patterns|sort(attribute='2', reverse=True) %}
-            <div class="pattern-group-card">
-                <div class="pattern-group-header">
-                    <div class="pattern-name-large">
-                        {{ pattern_translations.get(pattern, pattern) }}
-                    </div>
-                    <div class="pattern-stats-inline">
-                        <span class="pattern-count-badge">{{ pattern_error_list|length }} Fehler</span>
-                        <a href="{{ url_for('training', pattern=pattern) }}" class="train-link">
-                            💪 Trainieren
-                        </a>
-                    </div>
-                </div>
-
-                <div class="error-type-breakdown">
-                    {% set blunders = pattern_error_list|selectattr('error_type', 'equalto', 'blunder')|list %}
-                    {% set mistakes = pattern_error_list|selectattr('error_type', 'equalto', 'mistake')|list %}
-                    {% set inaccuracies = pattern_error_list|selectattr('error_type', 'equalto', 'inaccuracy')|list %}
-
-                    {% if blunders %}
-                    <span class="error-breakdown blunder">💥 {{ blunders|length }}</span>
-                    {% endif %}
-                    {% if mistakes %}
-                    <span class="error-breakdown mistake">⚠️ {{ mistakes|length }}</span>
-                    {% endif %}
-                    {% if inaccuracies %}
-                    <span class="error-breakdown inaccuracy">📊 {{ inaccuracies|length }}</span>
-                    {% endif %}
-                </div>
-
-                <div class="pattern-error-mini-list">
-                    {% for error in pattern_error_list[:3] %}
-                    <a href="{{ url_for('error_detail', error_id=error.id) }}" class="mini-error-item">
-                        <div class="mini-error-icon">
-                            {% if error.error_type == 'blunder' %}💥
-                            {% elif error.error_type == 'mistake' %}⚠️
-                            {% else %}📊{% endif %}
+                {% if display_count[0] < 8 %}
+                    {% set _ = display_count.append(display_count.pop() + 1) %}
+                    {% set percentage = (count / total_errors * 100)|round(1) %}
+                    <div class="pattern-bar-item">
+                        <div class="pattern-bar-header">
+                            <span class="pattern-bar-name">{{ pattern_translations.get(pattern, pattern) }}</span>
+                            <span class="pattern-bar-value">{{ count }} ({{ percentage }}%)</span>
                         </div>
-                        <div class="mini-error-info">
-                            <div class="mini-error-title">Zug {{ error.move_number }}</div>
-                            <div class="mini-error-meta">{{ error.centipawn_loss or '?' }} CP Verlust</div>
+                        <div class="pattern-bar-container">
+                            <div class="pattern-bar-fill" style="width: {{ percentage }}%"></div>
                         </div>
-                    </a>
-                    {% endfor %}
-                    {% if pattern_error_list|length > 3 %}
-                    <a href="{{ url_for('analyse', pattern=pattern) }}" class="show-more-link">
-                        + {{ pattern_error_list|length - 3 }} weitere anzeigen
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- Recent Errors Timeline -->
-    <div class="recent-errors-section">
-        <h3 class="section-title">🕒 Letzte Fehler</h3>
-        <div class="errors-timeline">
-            {% for error in errors[:10] %}
-            <a href="{{ url_for('error_detail', error_id=error.id) }}" class="timeline-error-item">
-                <div class="timeline-icon {{ error.error_type }}">
-                    {% if error.error_type == 'blunder' %}💥
-                    {% elif error.error_type == 'mistake' %}⚠️
-                    {% else %}📊{% endif %}
-                </div>
-                <div class="timeline-content">
-                    <div class="timeline-title">
-                        {{ pattern_translations.get(error.get_primary_pattern(), error.get_primary_pattern()) }} - Zug {{ error.move_number }}
+                        <a href="{{ url_for('training', pattern=pattern) }}" class="pattern-bar-action">💪 Trainieren</a>
                     </div>
-                    <div class="timeline-meta">
-                        {{ error.centipawn_loss or '?' }} CP Verlust •
-                        {{ error.created_at.strftime('%d.%m.%Y %H:%M') if error.created_at else 'Unbekannt' }}
-                    </div>
-                </div>
-                <div class="timeline-arrow">→</div>
-            </a>
+                {% endif %}
             {% endfor %}
         </div>
     </div>
@@ -161,346 +84,229 @@
     {% else %}
     <!-- Empty State -->
     <div class="empty-state">
-        <div class="empty-icon">🎉</div>
+        <div class="empty-icon">🎮</div>
         <h3>Noch keine Fehler analysiert</h3>
-        <p>Importiere deine Chess.com Partien, um deine Fehler zu analysieren!</p>
-        <a href="{{ url_for('dashboard') }}" class="btn-primary-custom">Zum Dashboard</a>
+        <p>Nutze das Formular oben um deine ersten Partien zu importieren!</p>
     </div>
     {% endif %}
 </div>
 
 <style>
-.errors-new-page {
-    max-width: 1400px;
+.analyse-page {
+    max-width: 1000px;
     margin: 0 auto;
     padding: 2rem;
 }
 
 /* Header */
-.errors-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.analyse-header {
     margin-bottom: 2rem;
 }
 
-.errors-header h1 {
+.analyse-header h1 {
     color: #fff;
+    font-size: 2rem;
     margin-bottom: 0.5rem;
 }
 
-.filter-badge {
-    background: var(--accent);
-    color: #fff;
-    padding: 0.75rem 1.5rem;
-    border-radius: 30px;
-    font-weight: 600;
+.text-muted {
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+/* Import Section */
+.import-section {
+    margin-bottom: 3rem;
+}
+
+.import-card {
+    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(52, 152, 219, 0.15) 100%);
+    border-radius: 20px;
+    padding: 2.5rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 2rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
 
-.filter-clear {
-    background: rgba(255,255,255,0.2);
-    color: #fff;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    transition: all 0.2s ease;
+.import-icon {
+    font-size: 4rem;
 }
 
-.filter-clear:hover {
-    background: rgba(255,255,255,0.3);
-    transform: rotate(90deg);
-}
-
-/* Stats Grid */
-.error-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-}
-
-.blunder-card::before { background: #e74c3c; }
-.mistake-card::before { background: #f39c12; }
-.inaccuracy-card::before { background: #3498db; }
-.total-card::before { background: var(--accent); }
-
-.stat-icon {
-    font-size: 2.5rem;
-}
-
-.stat-content {
+.import-content {
     flex: 1;
 }
 
-.stat-value {
-    font-size: 2rem;
-    font-weight: bold;
+.import-content h3 {
     color: #fff;
-    line-height: 1;
-}
-
-.stat-label {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin-top: 0.25rem;
-}
-
-.stat-trend {
     font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--accent);
+    margin-bottom: 0.5rem;
 }
 
-/* Pattern Groups */
-.pattern-section {
-    margin-bottom: 2rem;
+.import-content p {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+}
+
+.import-form {
+    display: flex;
+    gap: 1rem;
+}
+
+.username-input {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.username-input:focus {
+    outline: none;
+    border-color: #3498db;
+    background: rgba(255,255,255,0.15);
+}
+
+.username-input::placeholder {
+    color: rgba(255,255,255,0.5);
+}
+
+.btn-import {
+    padding: 1rem 2.5rem;
+    background: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(52, 152, 219, 0.4);
+}
+
+.btn-import:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.6);
+}
+
+/* Quick Stats */
+.quick-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.quick-stat {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.quick-stat-value {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #3498db;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.quick-stat-label {
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+/* Patterns Section */
+.patterns-section {
+    margin-bottom: 3rem;
 }
 
 .section-title {
     color: #fff;
-    margin-bottom: 1.5rem;
-    font-weight: 600;
-}
-
-.pattern-groups {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: 1.5rem;
-}
-
-.pattern-group-card {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    transition: transform 0.2s ease;
-}
-
-.pattern-group-card:hover {
-    transform: translateY(-4px);
-}
-
-.pattern-group-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.pattern-name-large {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #fff;
-}
-
-.pattern-stats-inline {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.pattern-count-badge {
-    background: rgba(255,255,255,0.1);
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    color: var(--accent);
-    font-weight: 600;
-}
-
-.train-link {
-    background: var(--accent);
-    color: #fff;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: transform 0.2s ease;
-}
-
-.train-link:hover {
-    transform: scale(1.05);
-    color: #fff;
-}
-
-.error-type-breakdown {
-    display: flex;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.error-breakdown {
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
-.error-breakdown.blunder {
-    background: rgba(231, 76, 60, 0.2);
-    color: #e74c3c;
-}
-
-.error-breakdown.mistake {
-    background: rgba(243, 156, 18, 0.2);
-    color: #f39c12;
-}
-
-.error-breakdown.inaccuracy {
-    background: rgba(52, 152, 219, 0.2);
-    color: #3498db;
-}
-
-.pattern-error-mini-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.mini-error-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    background: rgba(255,255,255,0.05);
-    border-radius: 8px;
-    text-decoration: none;
-    color: inherit;
-    transition: background 0.2s ease;
-}
-
-.mini-error-item:hover {
-    background: rgba(255,255,255,0.1);
-}
-
-.mini-error-icon {
     font-size: 1.5rem;
-}
-
-.mini-error-info {
-    flex: 1;
-}
-
-.mini-error-title {
-    color: #fff;
     font-weight: 600;
-    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
 }
 
-.mini-error-meta {
-    color: var(--text-muted);
-    font-size: 0.8rem;
+.patterns-chart {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-.show-more-link {
-    padding: 0.5rem;
-    text-align: center;
-    color: var(--accent);
-    font-weight: 600;
-    font-size: 0.9rem;
-    text-decoration: none;
-    display: block;
-    transition: background 0.2s ease;
-    border-radius: 8px;
-}
-
-.show-more-link:hover {
-    background: rgba(255,255,255,0.05);
-}
-
-/* Timeline */
-.recent-errors-section {
+.pattern-bar-item {
     margin-bottom: 2rem;
 }
 
-.errors-timeline {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.timeline-error-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    border-radius: 8px;
-    text-decoration: none;
-    color: inherit;
-    transition: background 0.2s ease;
-    margin-bottom: 0.5rem;
-}
-
-.timeline-error-item:last-child {
+.pattern-bar-item:last-child {
     margin-bottom: 0;
 }
 
-.timeline-error-item:hover {
-    background: rgba(255,255,255,0.05);
-}
-
-.timeline-icon {
-    font-size: 1.5rem;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+.pattern-bar-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
+    margin-bottom: 0.5rem;
 }
 
-.timeline-icon.blunder { background: rgba(231, 76, 60, 0.2); }
-.timeline-icon.mistake { background: rgba(243, 156, 18, 0.2); }
-.timeline-icon.inaccuracy { background: rgba(52, 152, 219, 0.2); }
-
-.timeline-content {
-    flex: 1;
-}
-
-.timeline-title {
-    color: #fff;
+.pattern-bar-name {
+    font-size: 1.1rem;
     font-weight: 600;
-    margin-bottom: 0.25rem;
+    color: #fff;
 }
 
-.timeline-meta {
+.pattern-bar-value {
+    font-size: 0.95rem;
     color: var(--text-muted);
-    font-size: 0.85rem;
+    font-weight: 600;
 }
 
-.timeline-arrow {
-    color: var(--accent);
-    font-size: 1.5rem;
+.pattern-bar-container {
+    height: 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.pattern-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3498db, #5dade2);
+    border-radius: 10px;
+    transition: width 0.6s ease;
+    animation: fillBar 0.8s ease-out;
+}
+
+@keyframes fillBar {
+    from {
+        width: 0 !important;
+    }
+}
+
+.pattern-bar-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(52, 152, 219, 0.15);
+    color: #3498db;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.pattern-bar-action:hover {
+    background: #3498db;
+    color: #fff;
+    transform: translateX(4px);
 }
 
 /* Empty State */
@@ -508,7 +314,7 @@
     text-align: center;
     padding: 4rem 2rem;
     background: var(--card-bg);
-    border-radius: 16px;
+    border-radius: 20px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
@@ -524,45 +330,38 @@
 
 .empty-state p {
     color: var(--text-muted);
-    margin-bottom: 2rem;
-}
-
-.btn-primary-custom {
-    background: var(--accent);
-    color: #fff;
-    padding: 0.75rem 2rem;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 600;
-    display: inline-block;
-    transition: transform 0.2s ease;
-}
-
-.btn-primary-custom:hover {
-    transform: translateY(-2px);
-    color: #fff;
+    max-width: 500px;
+    margin: 0 auto;
 }
 
 /* Responsive */
-@media (max-width: 1200px) {
-    .error-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .pattern-groups {
-        grid-template-columns: 1fr;
-    }
-}
-
 @media (max-width: 768px) {
-    .error-stats-grid {
+    .analyse-page {
+        padding: 1rem;
+    }
+
+    .import-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .import-form {
+        flex-direction: column;
+    }
+
+    .quick-stats {
         grid-template-columns: 1fr;
     }
 
-    .errors-header {
+    .patterns-chart {
+        padding: 1.5rem;
+    }
+
+    .pattern-bar-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 1rem;
+        gap: 0.25rem;
     }
 }
 </style>
