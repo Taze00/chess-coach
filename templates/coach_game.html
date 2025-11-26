@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Coach-Spiel - Stockmeister{% endblock %}
+
+{% block content %}
+<div class="coach-game-page">
+    <div class="coming-soon-card">
+        <div class="coming-soon-icon">🎮</div>
+        <h1>Coach-Spiel</h1>
+        <p class="coming-soon-subtitle">Spiele gegen den Coach, der gezielt Fallen auf Basis deiner Schwächen stellt!</p>
+
+        <div class="feature-preview">
+            <div class="feature-item">
+                <span class="feature-icon">🎯</span>
+                <div class="feature-content">
+                    <h3>Adaptive Fallen</h3>
+                    <p>Der Coach analysiert deine Fehler und stellt gezielt Fallen in deinen Problemmustern</p>
+                </div>
+            </div>
+
+            <div class="feature-item">
+                <span class="feature-icon">📊</span>
+                <div class="feature-content">
+                    <h3>Intelligentes Tracking</h3>
+                    <p>Verfolgt, welche Fallen du findest oder verpasst, um dein Training zu optimieren</p>
+                </div>
+            </div>
+
+            <div class="feature-item">
+                <span class="feature-icon">💡</span>
+                <div class="feature-content">
+                    <h3>Lern-Feedback</h3>
+                    <p>Erhalte direktes Feedback zu verpassten taktischen Gelegenheiten</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="coming-soon-badge">
+            <span>🚧 In Entwicklung</span>
+        </div>
+
+        <a href="{{ url_for('training') }}" class="btn-back">
+            ← Zurück zum Training
+        </a>
+    </div>
+</div>
+
+<style>
+.coach-game-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+}
+
+.coming-soon-card {
+    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(52, 152, 219, 0.15) 100%);
+    border-radius: 24px;
+    padding: 4rem 3rem;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.coming-soon-icon {
+    font-size: 6rem;
+    margin-bottom: 1.5rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+.coming-soon-card h1 {
+    font-size: 3rem;
+    color: #fff;
+    margin-bottom: 1rem;
+}
+
+.coming-soon-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    margin-bottom: 3rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.feature-preview {
+    display: grid;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    text-align: left;
+}
+
+.feature-item {
+    background: rgba(255,255,255,0.05);
+    padding: 2rem;
+    border-radius: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.feature-item:hover {
+    transform: translateX(8px);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    flex-shrink: 0;
+}
+
+.feature-content h3 {
+    color: #fff;
+    margin-bottom: 0.5rem;
+    font-size: 1.3rem;
+}
+
+.feature-content p {
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.coming-soon-badge {
+    display: inline-block;
+    background: rgba(52, 152, 219, 0.2);
+    border: 2px solid #3498db;
+    color: #3498db;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+
+.coming-soon-badge span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-back:hover {
+    background: rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+    color: #fff;
+}
+
+@media (max-width: 768px) {
+    .coach-game-page {
+        padding: 2rem 1rem;
+    }
+
+    .coming-soon-card {
+        padding: 3rem 2rem;
+    }
+
+    .coming-soon-card h1 {
+        font-size: 2rem;
+    }
+
+    .coming-soon-icon {
+        font-size: 4rem;
+    }
+}
+</style>
+{% endblock %}

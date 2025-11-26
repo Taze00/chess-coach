@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}FAQ - Taktische Muster{% endblock %}
+
+{% block content %}
+<div class="faq-page">
+    <div class="faq-header">
+        <h1>📚 Taktische Muster erklärt</h1>
+        <p class="faq-subtitle">Verstehe die wichtigsten Schachmuster und verbessere dein taktisches Verständnis</p>
+    </div>
+
+    <div class="patterns-grid">
+        {% for pattern_key, pattern in patterns.items() %}
+        <div class="pattern-card">
+            <div class="pattern-header">
+                <h2>{{ pattern.name }}</h2>
+            </div>
+
+            <div class="pattern-body">
+                <div class="pattern-section">
+                    <h3>Was ist das?</h3>
+                    <p>{{ pattern.description }}</p>
+                </div>
+
+                <div class="pattern-section">
+                    <h3>Beispiel</h3>
+                    <p class="pattern-example">{{ pattern.example }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="faq-footer">
+        <div class="tip-card">
+            <div class="tip-icon">💡</div>
+            <div class="tip-content">
+                <h3>Tipp zum Lernen</h3>
+                <p>Konzentriere dich auf ein Muster nach dem anderen. Nutze das Training um gezielt deine Schwächen zu trainieren!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.faq-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.faq-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.faq-header h1 {
+    color: #fff;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.faq-subtitle {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.patterns-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.pattern-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pattern-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.pattern-header {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(52, 152, 219, 0.1));
+    padding: 2rem;
+    border-bottom: 2px solid rgba(52, 152, 219, 0.3);
+}
+
+.pattern-header h2 {
+    color: #3498db;
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.pattern-body {
+    padding: 2rem;
+}
+
+.pattern-section {
+    margin-bottom: 2rem;
+}
+
+.pattern-section:last-child {
+    margin-bottom: 0;
+}
+
+.pattern-section h3 {
+    color: #fff;
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.pattern-section p {
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-size: 1rem;
+}
+
+.pattern-example {
+    background: rgba(255,255,255,0.05);
+    padding: 1rem;
+    border-left: 3px solid #3498db;
+    border-radius: 8px;
+    font-style: italic;
+}
+
+.faq-footer {
+    margin-top: 3rem;
+}
+
+.tip-card {
+    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(241, 196, 15, 0.15) 100%);
+    border-radius: 20px;
+    padding: 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.tip-icon {
+    font-size: 4rem;
+    flex-shrink: 0;
+}
+
+.tip-content h3 {
+    color: #fff;
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.tip-content p {
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .faq-page {
+        padding: 1rem;
+    }
+
+    .faq-header h1 {
+        font-size: 2rem;
+    }
+
+    .patterns-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tip-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 2rem;
+    }
+}
+</style>
+{% endblock %}

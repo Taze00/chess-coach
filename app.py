@@ -1076,6 +1076,69 @@ def analyze_games():
         }), 500
 
 
+@app.route('/coach-game')
+@login_required
+def coach_game():
+    """Coach game - play against AI that creates traps based on user weaknesses."""
+    return render_template('coach_game.html')
+
+
+@app.route('/faq')
+@login_required
+def faq():
+    """FAQ page with tactical pattern explanations."""
+    # Pattern explanations
+    patterns = {
+        'fork': {
+            'name': 'Gabel',
+            'description': 'Eine Gabel ist ein Doppelangriff, bei dem eine Figur (meist ein Springer oder Bauer) zwei oder mehr gegnerische Figuren gleichzeitig angreift.',
+            'example': 'Ein Springer auf e5 greift gleichzeitig den König auf g6 und die Dame auf c6 an.'
+        },
+        'pin': {
+            'name': 'Fesselung',
+            'description': 'Eine Fesselung tritt auf, wenn eine Figur nicht ziehen kann oder sollte, weil sie eine wertvollere Figur hinter sich schützt.',
+            'example': 'Ein Läufer fesselt einen Springer an den König - der Springer kann nicht ziehen, ohne den König in Schach zu setzen.'
+        },
+        'skewer': {
+            'name': 'Spieß',
+            'description': 'Ein Spieß ist das Gegenteil einer Fesselung: Eine wertvollere Figur wird angegriffen und muss wegziehen, wodurch eine dahinter stehende Figur verloren geht.',
+            'example': 'Eine Dame greift den König an, und nachdem der König ausweicht, kann die dahinter stehende Figur geschlagen werden.'
+        },
+        'discoveredAttack': {
+            'name': 'Abzugsangriff',
+            'description': 'Beim Abzugsangriff zieht eine Figur weg und gibt dadurch den Blick auf eine andere angreifende Figur frei.',
+            'example': 'Ein Springer zieht weg und gibt den Angriff eines Läufers auf die gegnerische Dame frei.'
+        },
+        'hangingPiece': {
+            'name': 'Hängende Figur',
+            'description': 'Eine hängende Figur ist ungeschützt und kann ohne Konsequenzen geschlagen werden.',
+            'example': 'Eine Dame steht ungeschützt im Zentrum und kann einfach geschlagen werden.'
+        },
+        'sacrifice': {
+            'name': 'Opfer',
+            'description': 'Ein bewusstes Aufgeben von Material für einen strategischen oder taktischen Vorteil.',
+            'example': 'Dame opfern um Matt in 2 Zügen zu erzwingen.'
+        },
+        'backRankMate': {
+            'name': 'Grundreihenmatt',
+            'description': 'Matt auf der Grundreihe, wenn der König von eigenen Bauern eingesperrt ist.',
+            'example': 'Turm gibt Matt auf der 8. Reihe, König kann nicht ausweichen wegen eigener Bauern.'
+        },
+        'trappedPiece': {
+            'name': 'Gefangene Figur',
+            'description': 'Eine Figur hat keine sicheren Zugmöglichkeiten mehr und wird verloren gehen.',
+            'example': 'Dame ist in der Ecke gefangen und hat keine Fluchtfelder.'
+        },
+        'exposedKing': {
+            'name': 'Exponierter König',
+            'description': 'Der König steht unsicher und kann leicht angegriffen werden.',
+            'example': 'König in der Brettmitte ohne Schutz durch Bauern oder Figuren.'
+        }
+    }
+
+    return render_template('faq.html', patterns=patterns)
+
+
 # Database initialization
 with app.app_context():
     db.create_all()
