@@ -39,45 +39,45 @@
         {% endif %}
     {% endfor %}
 
-    <!-- Schnelle Stats -->
-    <div class="quick-stats">
-        <div class="quick-stat">
-            <div class="quick-stat-value">{{ errors|length }}</div>
-            <div class="quick-stat-label">Fehler gefunden</div>
-        </div>
-        <div class="quick-stat">
-            <div class="quick-stat-value">{{ pattern_errors|length }}</div>
-            <div class="quick-stat-label">Pattern erkannt</div>
-        </div>
-    </div>
+    <!-- Fehlerverteilung -->
+    <div class="error-distribution">
+        <h3 class="section-title">📊 Deine Fehlerverteilung</h3>
+        <div class="distribution-card">
+            <div class="distribution-summary">
+                <div class="summary-item">
+                    <div class="summary-value">{{ errors|length }}</div>
+                    <div class="summary-label">Fehler gesamt</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">{{ pattern_errors|length }}</div>
+                    <div class="summary-label">Muster erkannt</div>
+                </div>
+            </div>
 
-    <!-- Pattern Übersicht -->
-    <div class="patterns-section">
-        <h3 class="section-title">🎯 Deine Schwächen</h3>
-        <div class="patterns-chart">
-            {% set sorted_patterns = [] %}
-            {% for pattern, error_list in pattern_errors.items() %}
-                {% set _ = sorted_patterns.append((pattern, error_list, error_list|length)) %}
-            {% endfor %}
+            <div class="pattern-bars">
+                {% set sorted_patterns = [] %}
+                {% for pattern, error_list in pattern_errors.items() %}
+                    {% set _ = sorted_patterns.append((pattern, error_list, error_list|length)) %}
+                {% endfor %}
 
-            {% set total_errors = errors|length %}
-            {% set display_count = [0] %}
-            {% for pattern, pattern_error_list, count in sorted_patterns|sort(attribute='2', reverse=True) %}
-                {% if display_count[0] < 8 %}
-                    {% set _ = display_count.append(display_count.pop() + 1) %}
-                    {% set percentage = (count / total_errors * 100)|round(1) %}
-                    <div class="pattern-bar-item">
-                        <div class="pattern-bar-header">
-                            <span class="pattern-bar-name">{{ pattern_translations.get(pattern, pattern) }}</span>
-                            <span class="pattern-bar-value">{{ count }} ({{ percentage }}%)</span>
+                {% set total_errors = errors|length %}
+                {% set display_count = [0] %}
+                {% for pattern, pattern_error_list, count in sorted_patterns|sort(attribute='2', reverse=True) %}
+                    {% if display_count[0] < 8 %}
+                        {% set _ = display_count.append(display_count.pop() + 1) %}
+                        {% set percentage = (count / total_errors * 100)|round(1) %}
+                        <div class="pattern-bar-item">
+                            <div class="pattern-bar-header">
+                                <span class="pattern-bar-name">{{ pattern_translations.get(pattern, pattern) }}</span>
+                                <span class="pattern-bar-value">{{ count }} ({{ percentage }}%)</span>
+                            </div>
+                            <div class="pattern-bar-container">
+                                <div class="pattern-bar-fill" style="width: {{ percentage }}%"></div>
+                            </div>
                         </div>
-                        <div class="pattern-bar-container">
-                            <div class="pattern-bar-fill" style="width: {{ percentage }}%"></div>
-                        </div>
-                        <a href="{{ url_for('training', pattern=pattern) }}" class="pattern-bar-action">💪 Trainieren</a>
-                    </div>
-                {% endif %}
-            {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            </div>
         </div>
     </div>
 
@@ -192,37 +192,8 @@
     box-shadow: 0 6px 20px rgba(52, 152, 219, 0.6);
 }
 
-/* Quick Stats */
-.quick-stats {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 3rem;
-}
-
-.quick-stat {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 2rem;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.quick-stat-value {
-    font-size: 3rem;
-    font-weight: bold;
-    color: #3498db;
-    line-height: 1;
-    margin-bottom: 0.5rem;
-}
-
-.quick-stat-label {
-    color: var(--text-muted);
-    font-size: 1rem;
-}
-
-/* Patterns Section */
-.patterns-section {
+/* Error Distribution */
+.error-distribution {
     margin-bottom: 3rem;
 }
 
@@ -233,11 +204,42 @@
     margin-bottom: 1.5rem;
 }
 
-.patterns-chart {
+.distribution-card {
     background: var(--card-bg);
     border-radius: 20px;
     padding: 2rem;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.distribution-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    padding-bottom: 2rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+}
+
+.summary-item {
+    text-align: center;
+}
+
+.summary-value {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #3498db;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.summary-label {
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.pattern-bars {
+    /* Container für die Balken */
 }
 
 .pattern-bar-item {
@@ -272,7 +274,6 @@
     background: rgba(255,255,255,0.1);
     border-radius: 10px;
     overflow: hidden;
-    margin-bottom: 0.75rem;
 }
 
 .pattern-bar-fill {
@@ -287,26 +288,6 @@
     from {
         width: 0 !important;
     }
-}
-
-.pattern-bar-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(52, 152, 219, 0.15);
-    color: #3498db;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.pattern-bar-action:hover {
-    background: #3498db;
-    color: #fff;
-    transform: translateX(4px);
 }
 
 /* Empty State */
@@ -350,11 +331,12 @@
         flex-direction: column;
     }
 
-    .quick-stats {
+    .distribution-summary {
         grid-template-columns: 1fr;
+        gap: 1.5rem;
     }
 
-    .patterns-chart {
+    .distribution-card {
         padding: 1.5rem;
     }
 
@@ -362,6 +344,7 @@
         flex-direction: column;
         align-items: flex-start;
         gap: 0.25rem;
+        margin-bottom: 0.75rem;
     }
 }
 </style>
