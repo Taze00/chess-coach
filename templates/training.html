@@ -42,7 +42,7 @@
 
     /* Eigenes Schachbrett - CSS Grid */
     #chessboard {
-        width: min(90vh, 90vw, 800px); /* Nimmt 90% vom kleineren Wert (Höhe oder Breite), max 800px */
+        width: 100%; /* Nimmt volle Breite des Containers */
         margin: 0 auto;
         display: grid;
         grid-template-columns: repeat(8, 1fr);
@@ -50,20 +50,6 @@
         aspect-ratio: 1;
         position: relative;
         user-select: none;
-    }
-
-    /* Responsive - größere Bildschirme */
-    @media (min-width: 1600px) and (min-height: 900px) {
-        #chessboard {
-            width: min(85vh, 50vw, 900px); /* Noch größer auf großen Monitoren */
-        }
-    }
-
-    /* Kleinere Bildschirme */
-    @media (max-width: 768px) {
-        #chessboard {
-            width: min(80vh, 95vw, 600px);
-        }
     }
 
     /* Einzelne Felder */
@@ -316,21 +302,27 @@
 
     .board-wrapper {
         flex: 0 1 auto;
-        width: 700px;
+        width: min(85vh, 800px); /* Nutzt 85% der Viewport-Höhe, max 800px */
         max-width: 100%;
         position: relative;
     }
 
     /* Responsive board wrapper */
-    @media (min-width: 1400px) {
+    @media (min-width: 1600px) {
         .board-wrapper {
-            width: 750px;
+            width: min(80vh, 900px); /* Noch größer auf großen Monitoren */
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .board-wrapper {
+            width: min(75vh, 650px);
         }
     }
 
     @media (max-width: 768px) {
         .board-wrapper {
-            width: 500px;
+            width: min(70vh, 500px);
         }
     }
 
