@@ -56,28 +56,8 @@
         </div>
     </div>
 
-    <!-- Your Weaknesses -->
-    {% if stats.pattern_stats %}
-    <div class="weaknesses-section">
-        <h3 class="section-title">⚠️ Deine Schwachstellen</h3>
-        <p class="section-subtitle">Diese taktischen Muster solltest du üben</p>
-        <div class="weaknesses-grid">
-            {% for pattern, count in stats.pattern_stats[:5] %}
-            <a href="{{ url_for('training', pattern=pattern) }}" class="weakness-card">
-                <div class="weakness-rank">#{{ loop.index }}</div>
-                <div class="weakness-info">
-                    <div class="weakness-name">
-                        {{ stats.pattern_translations.get(pattern, pattern) }}
-                    </div>
-                    <div class="weakness-count">{{ count }} Fehler</div>
-                </div>
-                <div class="weakness-arrow">→</div>
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-    {% else %}
-    <!-- Empty State -->
+    <!-- Empty State (when no errors) -->
+    {% if not stats.pattern_stats %}
     <div class="empty-state">
         <div class="empty-icon">🎮</div>
         <h3>Noch keine Fehler analysiert</h3>
@@ -107,7 +87,7 @@
 
 /* Hero Section */
 .hero-section {
-    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(255, 107, 53, 0.1) 100%);
+    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(52, 152, 219, 0.15) 100%);
     border-radius: 24px;
     padding: 3rem;
     margin-bottom: 3rem;
@@ -137,8 +117,8 @@
 }
 
 .training-suggestion {
-    background: rgba(255, 107, 53, 0.15);
-    border-left: 4px solid var(--accent);
+    background: rgba(52, 152, 219, 0.15);
+    border-left: 4px solid #3498db;
     padding: 1.5rem;
     border-radius: 12px;
     display: flex;
@@ -166,7 +146,7 @@
 .suggestion-pattern {
     font-size: 1.5rem;
     font-weight: bold;
-    color: var(--accent);
+    color: #3498db;
     margin-bottom: 0.25rem;
 }
 
@@ -179,7 +159,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.75rem;
-    background: var(--accent);
+    background: #3498db;
     color: #fff;
     padding: 1.25rem 3rem;
     border-radius: 16px;
@@ -187,12 +167,12 @@
     font-weight: 600;
     font-size: 1.2rem;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
+    box-shadow: 0 4px 16px rgba(52, 152, 219, 0.4);
 }
 
 .btn-hero:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.6);
+    box-shadow: 0 8px 24px rgba(52, 152, 219, 0.6);
     color: #fff;
 }
 
@@ -217,7 +197,7 @@
 .streak-number {
     font-size: 3rem;
     font-weight: bold;
-    color: var(--accent);
+    color: #3498db;
     line-height: 1;
 }
 
@@ -261,88 +241,13 @@
 .today-stat-value {
     font-size: 2.5rem;
     font-weight: bold;
-    color: var(--accent);
+    color: #3498db;
     margin-bottom: 0.5rem;
 }
 
 .today-stat-label {
     font-size: 0.95rem;
     color: var(--text-muted);
-}
-
-/* Weaknesses Section */
-.weaknesses-section {
-    margin-bottom: 3rem;
-}
-
-.weaknesses-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
-}
-
-.weakness-card {
-    background: var(--card-bg);
-    padding: 1.5rem;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    text-decoration: none;
-    color: inherit;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    position: relative;
-    overflow: hidden;
-}
-
-.weakness-card::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 4px;
-    background: var(--accent);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.weakness-card:hover {
-    transform: translateX(8px);
-}
-
-.weakness-card:hover::before {
-    opacity: 1;
-}
-
-.weakness-rank {
-    font-size: 2rem;
-    font-weight: bold;
-    color: rgba(255,255,255,0.2);
-    min-width: 50px;
-    text-align: center;
-}
-
-.weakness-info {
-    flex: 1;
-}
-
-.weakness-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 0.25rem;
-}
-
-.weakness-count {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-}
-
-.weakness-arrow {
-    font-size: 1.5rem;
-    color: var(--accent);
 }
 
 /* Empty State */
@@ -439,10 +344,6 @@
     }
 
     .today-stats {
-        grid-template-columns: 1fr;
-    }
-
-    .weaknesses-grid {
         grid-template-columns: 1fr;
     }
 }
