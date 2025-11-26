@@ -1,208 +1,565 @@
 {% extends "base.html" %}
 
-{% block title %}Fehler-Analyse - Stockmeister{% endblock %}
+{% block title %}Fehler-Analyse - Chess Coach{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <h1 class="mb-3">Fehler-Analyse</h1>
+<div class="errors-new-page">
+    <!-- Header -->
+    <div class="errors-header">
+        <div>
+            <h1>Fehler-Analyse</h1>
+            <p class="text-muted">Lerne aus deinen Fehlern und verbessere dein Spiel</p>
+        </div>
+        {% if pattern_filter %}
+        <div class="filter-badge">
+            🎯 {{ pattern_translations.get(pattern_filter, pattern_filter) }}
+            <a href="{{ url_for('errors') }}" class="filter-clear">✕</a>
+        </div>
+        {% endif %}
     </div>
-</div>
 
-<!-- Summary Cards -->
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <div class="display-4 mb-2" style="color: #e74c3c;">💥</div>
-                <h5>Grobe Fehler</h5>
-                <p class="display-6 mb-0">{{ categorized.blunders|length }}</p>
+    <!-- Summary Stats -->
+    <div class="error-stats-grid">
+        <div class="stat-card blunder-card">
+            <div class="stat-icon">💥</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ categorized.blunders|length }}</div>
+                <div class="stat-label">Grobe Fehler</div>
             </div>
+            <div class="stat-trend">{{ '%.1f' % ((categorized.blunders|length / errors|length * 100) if errors|length > 0 else 0) }}%</div>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <div class="display-4 mb-2" style="color: #f39c12;">⚠️</div>
-                <h5>Fehler</h5>
-                <p class="display-6 mb-0">{{ categorized.mistakes|length }}</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <div class="display-4 mb-2" style="color: #3498db;">📊</div>
-                <h5>Ungenauigkeiten</h5>
-                <p class="display-6 mb-0">{{ categorized.inaccuracies|length }}</p>
-            </div>
-        </div>
-    </div>
-</div>
 
-{% if pattern_filter %}
-<!-- Active Pattern Filter -->
-<div class="row mb-3">
-    <div class="col">
-        <div class="alert" style="background: rgba(255, 107, 53, 0.2); border: 1px solid var(--accent); color: white;">
-            🎯 Gefiltert nach: <strong>{{ pattern_translations.get(pattern_filter, pattern_filter) }}</strong>
-            <a href="{{ url_for('errors') }}" class="btn btn-sm btn-outline-light ms-2" style="float: right;">Filter entfernen</a>
+        <div class="stat-card mistake-card">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ categorized.mistakes|length }}</div>
+                <div class="stat-label">Fehler</div>
+            </div>
+            <div class="stat-trend">{{ '%.1f' % ((categorized.mistakes|length / errors|length * 100) if errors|length > 0 else 0) }}%</div>
+        </div>
+
+        <div class="stat-card inaccuracy-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ categorized.inaccuracies|length }}</div>
+                <div class="stat-label">Ungenauigkeiten</div>
+            </div>
+            <div class="stat-trend">{{ '%.1f' % ((categorized.inaccuracies|length / errors|length * 100) if errors|length > 0 else 0) }}%</div>
+        </div>
+
+        <div class="stat-card total-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ errors|length }}</div>
+                <div class="stat-label">Gesamt</div>
+            </div>
+            <div class="stat-trend">Alle Fehler</div>
         </div>
     </div>
-</div>
-{% endif %}
 
-{% if errors %}
-<!-- Filter Section -->
-<div class="row mb-3">
-    <div class="col">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex gap-2 flex-wrap">
-                    <button class="btn btn-sm btn-outline-light filter-btn active" data-filter="all">Alle</button>
-                    <button class="btn btn-sm btn-outline-danger filter-btn" data-filter="blunder">💥 Grobe Fehler</button>
-                    <button class="btn btn-sm btn-outline-warning filter-btn" data-filter="mistake">⚠️ Fehler</button>
-                    <button class="btn btn-sm btn-outline-info filter-btn" data-filter="inaccuracy">📊 Ungenauigkeiten</button>
-                    <div class="ms-auto">
-                        <select id="sortSelect" class="form-select form-select-sm" style="width: auto;">
-                            <option value="newest">Neueste zuerst</option>
-                            <option value="oldest">Älteste zuerst</option>
-                            <option value="severity">Schwerwiegendste</option>
-                        </select>
+    {% if errors %}
+    <!-- Pattern Groups -->
+    <div class="pattern-section">
+        <h3 class="section-title">📊 Fehler nach Pattern</h3>
+        <div class="pattern-groups">
+            {% set pattern_errors = {} %}
+            {% for error in errors %}
+                {% set pattern = error.get_primary_pattern() %}
+                {% if pattern %}
+                    {% if pattern not in pattern_errors %}
+                        {% set _ = pattern_errors.update({pattern: []}) %}
+                    {% endif %}
+                    {% set _ = pattern_errors[pattern].append(error) %}
+                {% endif %}
+            {% endfor %}
+
+            {% for pattern, pattern_error_list in pattern_errors.items()|sort(attribute='1', reverse=True) %}
+            <div class="pattern-group-card">
+                <div class="pattern-group-header">
+                    <div class="pattern-name-large">
+                        {{ pattern_translations.get(pattern, pattern) }}
+                    </div>
+                    <div class="pattern-stats-inline">
+                        <span class="pattern-count-badge">{{ pattern_error_list|length }} Fehler</span>
+                        <a href="{{ url_for('training', pattern=pattern) }}" class="train-link">
+                            💪 Trainieren
+                        </a>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Errors List -->
-<div class="row">
-    <div class="col">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="mb-3">Deine Fehler</h5>
-                <div class="error-list" id="errorList">
-                    {% for error in errors %}
-                    <a href="{{ url_for('error_detail', error_id=error.id) }}"
-                       class="error-item"
-                       data-type="{{ error.error_type }}"
-                       data-loss="{{ error.centipawn_loss }}"
-                       data-id="{{ error.id }}">
-                        <div class="error-icon">
-                            {% if error.error_type == 'blunder' %}
-                                💥
-                            {% elif error.error_type == 'mistake' %}
-                                ⚠️
-                            {% else %}
-                                📊
-                            {% endif %}
+                <div class="error-type-breakdown">
+                    {% set blunders = pattern_error_list|selectattr('error_type', 'equalto', 'blunder')|list %}
+                    {% set mistakes = pattern_error_list|selectattr('error_type', 'equalto', 'mistake')|list %}
+                    {% set inaccuracies = pattern_error_list|selectattr('error_type', 'equalto', 'inaccuracy')|list %}
+
+                    {% if blunders %}
+                    <span class="error-breakdown blunder">💥 {{ blunders|length }}</span>
+                    {% endif %}
+                    {% if mistakes %}
+                    <span class="error-breakdown mistake">⚠️ {{ mistakes|length }}</span>
+                    {% endif %}
+                    {% if inaccuracies %}
+                    <span class="error-breakdown inaccuracy">📊 {{ inaccuracies|length }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="pattern-error-mini-list">
+                    {% for error in pattern_error_list[:3] %}
+                    <a href="{{ url_for('error_detail', error_id=error.id) }}" class="mini-error-item">
+                        <div class="mini-error-icon">
+                            {% if error.error_type == 'blunder' %}💥
+                            {% elif error.error_type == 'mistake' %}⚠️
+                            {% else %}📊{% endif %}
                         </div>
-                        <div class="error-content">
-                            <div class="error-title">
-                                <strong>Zug {{ error.move_number }}</strong>
-                                <span class="error-badge error-badge-{{ error.error_type }}">
-                                    -{{ (error.centipawn_loss / 100)|round(1) }}
-                                </span>
-                            </div>
-                            <div class="error-description">
-                                {{ error.explanation }}
-                            </div>
-                            {% if error.tactical_patterns %}
-                            <div class="error-patterns mt-2">
-                                {% set patterns = error.get_tactical_patterns_list() %}
-                                {% for pattern in patterns[:3] %}
-                                    <span class="badge bg-secondary-subtle text-secondary me-1">
-                                        {{ pattern_translations.get(pattern, pattern) }}
-                                    </span>
-                                {% endfor %}
-                                {% if patterns|length > 3 %}
-                                    <span class="badge bg-secondary-subtle text-secondary">+{{ patterns|length - 3 }}</span>
-                                {% endif %}
-                            </div>
-                            {% endif %}
+                        <div class="mini-error-info">
+                            <div class="mini-error-title">Zug {{ error.move_number }}</div>
+                            <div class="mini-error-meta">{{ error.centipawn_loss or '?' }} CP Verlust</div>
                         </div>
-                        <div class="error-arrow">→</div>
                     </a>
                     {% endfor %}
+                    {% if pattern_error_list|length > 3 %}
+                    <a href="{{ url_for('errors', pattern=pattern) }}" class="show-more-link">
+                        + {{ pattern_error_list|length - 3 }} weitere anzeigen
+                    </a>
+                    {% endif %}
                 </div>
             </div>
+            {% endfor %}
         </div>
     </div>
-</div>
-{% else %}
-<!-- Empty State -->
-<div class="row">
-    <div class="col">
-        <div class="text-center py-5">
-            <span class="display-1">🔍</span>
-            <p class="lead mt-3">Noch keine Fehler gefunden</p>
-            <p class="text-muted">Gehe zum Dashboard und importiere & analysiere deine Spiele</p>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Zum Dashboard</a>
+
+    <!-- Recent Errors Timeline -->
+    <div class="recent-errors-section">
+        <h3 class="section-title">🕒 Letzte Fehler</h3>
+        <div class="errors-timeline">
+            {% for error in errors[:10] %}
+            <a href="{{ url_for('error_detail', error_id=error.id) }}" class="timeline-error-item">
+                <div class="timeline-icon {{ error.error_type }}">
+                    {% if error.error_type == 'blunder' %}💥
+                    {% elif error.error_type == 'mistake' %}⚠️
+                    {% else %}📊{% endif %}
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-title">
+                        {{ pattern_translations.get(error.get_primary_pattern(), error.get_primary_pattern()) }} - Zug {{ error.move_number }}
+                    </div>
+                    <div class="timeline-meta">
+                        {{ error.centipawn_loss or '?' }} CP Verlust •
+                        {{ error.created_at.strftime('%d.%m.%Y %H:%M') if error.created_at else 'Unbekannt' }}
+                    </div>
+                </div>
+                <div class="timeline-arrow">→</div>
+            </a>
+            {% endfor %}
         </div>
     </div>
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <div class="empty-icon">🎉</div>
+        <h3>Noch keine Fehler analysiert</h3>
+        <p>Importiere deine Chess.com Partien, um deine Fehler zu analysieren!</p>
+        <a href="{{ url_for('dashboard') }}" class="btn-primary-custom">Zum Dashboard</a>
+    </div>
+    {% endif %}
 </div>
-{% endif %}
-{% endblock %}
 
-{% block extra_js %}
-<script>
-// Filter and Sort functionality
-const errorList = document.getElementById('errorList');
-const filterBtns = document.querySelectorAll('.filter-btn');
-const sortSelect = document.getElementById('sortSelect');
-let currentFilter = 'all';
-let currentSort = 'newest';
-
-// Filter errors
-filterBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-        // Update active state
-        filterBtns.forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-
-        // Update filter
-        currentFilter = this.dataset.filter;
-        applyFiltersAndSort();
-    });
-});
-
-// Sort errors
-sortSelect.addEventListener('change', function() {
-    currentSort = this.value;
-    applyFiltersAndSort();
-});
-
-function applyFiltersAndSort() {
-    const items = Array.from(errorList.querySelectorAll('.error-item'));
-
-    // Filter
-    items.forEach(item => {
-        const type = item.dataset.type;
-        if (currentFilter === 'all' || type === currentFilter) {
-            item.style.display = 'flex';
-        } else {
-            item.style.display = 'none';
-        }
-    });
-
-    // Sort visible items
-    const visibleItems = items.filter(item => item.style.display !== 'none');
-
-    visibleItems.sort((a, b) => {
-        if (currentSort === 'newest') {
-            return parseInt(b.dataset.id) - parseInt(a.dataset.id);
-        } else if (currentSort === 'oldest') {
-            return parseInt(a.dataset.id) - parseInt(b.dataset.id);
-        } else if (currentSort === 'severity') {
-            return parseInt(b.dataset.loss) - parseInt(a.dataset.loss);
-        }
-    });
-
-    // Reorder in DOM
-    visibleItems.forEach(item => {
-        errorList.appendChild(item);
-    });
+<style>
+.errors-new-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
 }
-</script>
+
+/* Header */
+.errors-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.errors-header h1 {
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.filter-badge {
+    background: var(--accent);
+    color: #fff;
+    padding: 0.75rem 1.5rem;
+    border-radius: 30px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.filter-clear {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.filter-clear:hover {
+    background: rgba(255,255,255,0.3);
+    transform: rotate(90deg);
+}
+
+/* Stats Grid */
+.error-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+}
+
+.blunder-card::before { background: #e74c3c; }
+.mistake-card::before { background: #f39c12; }
+.inaccuracy-card::before { background: #3498db; }
+.total-card::before { background: var(--accent); }
+
+.stat-icon {
+    font-size: 2.5rem;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #fff;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.stat-trend {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+/* Pattern Groups */
+.pattern-section {
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    color: #fff;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+.pattern-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.pattern-group-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease;
+}
+
+.pattern-group-card:hover {
+    transform: translateY(-4px);
+}
+
+.pattern-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.pattern-name-large {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.pattern-stats-inline {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pattern-count-badge {
+    background: rgba(255,255,255,0.1);
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.train-link {
+    background: var(--accent);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: transform 0.2s ease;
+}
+
+.train-link:hover {
+    transform: scale(1.05);
+    color: #fff;
+}
+
+.error-type-breakdown {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.error-breakdown {
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.error-breakdown.blunder {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+.error-breakdown.mistake {
+    background: rgba(243, 156, 18, 0.2);
+    color: #f39c12;
+}
+
+.error-breakdown.inaccuracy {
+    background: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+}
+
+.pattern-error-mini-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mini-error-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.2s ease;
+}
+
+.mini-error-item:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.mini-error-icon {
+    font-size: 1.5rem;
+}
+
+.mini-error-info {
+    flex: 1;
+}
+
+.mini-error-title {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.mini-error-meta {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.show-more-link {
+    padding: 0.5rem;
+    text-align: center;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: block;
+    transition: background 0.2s ease;
+    border-radius: 8px;
+}
+
+.show-more-link:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+/* Timeline */
+.recent-errors-section {
+    margin-bottom: 2rem;
+}
+
+.errors-timeline {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.timeline-error-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.2s ease;
+    margin-bottom: 0.5rem;
+}
+
+.timeline-error-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-error-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.timeline-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.timeline-icon.blunder { background: rgba(231, 76, 60, 0.2); }
+.timeline-icon.mistake { background: rgba(243, 156, 18, 0.2); }
+.timeline-icon.inaccuracy { background: rgba(52, 152, 219, 0.2); }
+
+.timeline-content {
+    flex: 1;
+}
+
+.timeline-title {
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.timeline-meta {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.timeline-arrow {
+    color: var(--accent);
+    font-size: 1.5rem;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.empty-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    color: #fff;
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+}
+
+.btn-primary-custom {
+    background: var(--accent);
+    color: #fff;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+.btn-primary-custom:hover {
+    transform: translateY(-2px);
+    color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .error-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .pattern-groups {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .error-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .errors-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+}
+</style>
 {% endblock %}
